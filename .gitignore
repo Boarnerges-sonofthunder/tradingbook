@@ -27,6 +27,9 @@ dist-ssr
 __pycache__/
 *.pyc
 
+# Local updater signing keys
+.tauri/
+
 # Local data folders - ignore content, keep structure
 data/screenshots/*
 data/imports/*

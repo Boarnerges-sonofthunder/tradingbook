@@ -42,9 +42,9 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "REPLACE_WITH_TAURI_UPDATER_PUBLIC_KEY",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlDMzM0RkQ2RjAwMEUwNzEKUldSeDRBRHcxazh6bks3RGJRR1RnZmFoQ3g3REx1MVA0b3p5RFRwWnZaaVJPK3RKTUQzbTdEenEK",
       "endpoints": [
-        "https://github.com/BMilc/TradingBook/releases/latest/download/latest.json"
+        "https://github.com/Boarnerges-sonofthunder/tradingbook/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"
