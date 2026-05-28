@@ -23,6 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# Python cache files
+__pycache__/
+*.pyc
+
 # Local data folders - ignore content, keep structure
 data/screenshots/*
 data/imports/*
