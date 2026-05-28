@@ -1,0 +1,12 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="72" y="72" width="880" height="880" rx="196" fill="#0F1117"/>
+  <rect x="72" y="72" width="880" height="880" rx="196" stroke="#2A3040" stroke-width="20"/>
+
+  <path d="M288 704H736" stroke="#2A3040" stroke-width="30" stroke-linecap="round"/>
+  <path d="M288 704V344" stroke="#2A3040" stroke-width="30" stroke-linecap="round"/>
+
+  <path d="M322 654L436 566L524 612L696 430" stroke="#4A90E2" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M656 430H696V470" stroke="#4A90E2" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <text x="512" y="305" text-anchor="middle" fill="#E8EDF3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="170" font-weight="700" letter-spacing="6">TB</text>
+</svg>

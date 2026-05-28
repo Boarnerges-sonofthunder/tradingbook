@@ -1,0 +1,95 @@
+export type AIRole = "system" | "user" | "assistant";
+
+export interface AIChatMessage {
+  id: string;
+  role: AIRole;
+  content: string;
+  createdAt: string;
+  error?: boolean;
+}
+
+export interface AIAnalyticsSummary {
+  winRate: number;
+  profitFactor: number | null;
+  drawdown: number;
+  totalNetPnl: number;
+  totalTrades: number;
+  currency: string;
+}
+
+export interface AIAnalyticsExport {
+  generatedAt: string;
+  analytics: AIAnalyticsSummary;
+  pnl: {
+    totalNetPnl: number;
+    totalGrossPnl: number;
+    totalFees: number;
+    averagePnl: number;
+    bestTrade: number;
+    worstTrade: number;
+  };
+  drawdown: {
+    maxDrawdown: number;
+    maxDrawdownPct: number;
+    currentDrawdown: number;
+    currentDrawdownPct: number;
+    recoveryTrades: number | null;
+  };
+  riskManagement: {
+    avgRR: number | null;
+    pctWithSL: number;
+    pctWithTP: number;
+    profitFactor: number | null;
+  };
+  habits: string[];
+  emotions: string[];
+  errors: string[];
+  strategies: Array<{
+    strategyName: string;
+    totalTrades: number;
+    winRate: number;
+    netPnl: number;
+  }>;
+  sessions: Array<{
+    sessionName: string;
+    totalTrades: number;
+    winRate: number;
+    netPnl: number;
+  }>;
+  symbols: Array<{
+    symbol: string;
+    totalTrades: number;
+    winRate: number;
+    netPnl: number;
+  }>;
+  limitations: string[];
+}
+
+export interface AIConversationState {
+  id: string;
+  updatedAt: string;
+  messages: AIChatMessage[];
+}
+
+export interface AIInsightCard {
+  id: string;
+  title: string;
+  summary: string;
+  severity: "positive" | "warning" | "neutral";
+  evidence: string[];
+}
+
+export interface AIChatRequest {
+  userMessage: string;
+  conversation: AIConversationState;
+  endpoint?: string;
+  model?: string;
+  timeoutMs?: number;
+  onToken?: (token: string) => void;
+}
+
+export interface AIChatResponse {
+  message: AIChatMessage;
+  exportPath: string;
+  logsPath: string;
+}

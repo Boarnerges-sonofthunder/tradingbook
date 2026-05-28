@@ -1,0 +1,928 @@
+/* ============================================================
+   Layout — AppLayout + Sidebar
+   Styles du shell principal de l'application desktop.
+   ============================================================ */
+
+/* ─── Shell ──────────────────────────────────────────────── */
+
+.app-layout {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Colonne droite : contient la topbar et le contenu principal */
+.app-shell {
+  flex: 1;
+  min-width: 0; /* Empêche le dépassement flex sur les contenus larges */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Topbar — barre supérieure (titre de page + actions)
+   Hauteur 52px : alignée sur la zone logo de la sidebar. */
+.app-topbar {
+  flex-shrink: 0;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 var(--spacing-lg);
+}
+
+/* Conteneur interne : répartit titre (gauche) et actions (droite) */
+.topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: var(--spacing-md);
+}
+
+/* Zone gauche : titre + description */
+.topbar-page-info {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-md);
+  min-width: 0; /* Empêche le dépassement flex */
+}
+
+/* Titre de la page active */
+.topbar-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  /* Truncation de sécurité si le titre est exceptionnellement long */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+  line-height: 1; /* Reset du line-height global */
+}
+
+/* Description courte, tronquée si trop longue */
+.topbar-description {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Zone droite : actions rapides + statuts futurs */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+.global-search {
+  position: relative;
+  width: min(420px, 38vw);
+}
+
+.global-search__field {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  height: 34px;
+  padding: 0 var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.global-search__field:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px rgba(77, 163, 255, 0.18);
+}
+
+.global-search__field input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.global-search__field input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.global-search__field input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.global-search__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.global-search__clear:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.global-search-results {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: var(--z-dropdown);
+  width: min(560px, 72vw);
+  max-height: min(640px, calc(100vh - 76px));
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  box-shadow: var(--shadow-lg);
+}
+
+.global-search-results--empty {
+  padding: var(--spacing-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.global-search-results__group + .global-search-results__group {
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.global-search-results__heading {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 0 var(--spacing-xs) var(--spacing-xs);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.global-search-results__heading strong {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.global-search-results__items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.global-search-results__item {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.9fr) minmax(120px, 0.7fr) minmax(
+      160px,
+      1fr
+    );
+  gap: var(--spacing-sm);
+  align-items: center;
+  min-height: 42px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.global-search-results__item:hover {
+  background: var(--color-bg-hover);
+}
+
+.global-search-results__title,
+.global-search-results__subtitle,
+.global-search-results__detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.global-search-results__title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.global-search-results__subtitle,
+.global-search-results__detail {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+/* Bouton d'action dans la topbar — style de base pour une future utilisation */
+.topbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 6px var(--spacing-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: default;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.topbar-btn:hover {
+  background-color: var(--color-bg-hover);
+  border-color: var(--color-text-muted);
+}
+
+.topbar-btn--primary {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+.topbar-btn--primary:hover {
+  background-color: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+/* Zone de contenu principal : scroll vertical uniquement */
+.app-content {
+  flex: 1;
+  /* min-height: 0 est requis dans une colonne flex pour que flex:1
+     fonctionne correctement et que overflow-y: auto soit respecté. */
+  min-height: 0;
+  overflow-y: auto;
+  /* overflow-x: hidden empêche tout débordement horizontal non voulu
+     (tableaux larges, cartes débordantes) — le scroll horizontal doit
+     être géré localement avec .table-wrapper si nécessaire. */
+  overflow-x: hidden;
+  background-color: var(--color-bg-primary);
+  padding: var(--spacing-lg);
+  /* Scrollbar discrète pour le look desktop */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+/* ─── Toast Portal ───────────────────────────────────────── */
+
+/* Point de montage fixe pour les notifications (ReactDOM.createPortal).
+   Hors du flux normal — ne modifie pas la mise en page des autres éléments. */
+#toast-portal {
+  position: fixed;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  z-index: var(--z-tooltip);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  /* pointer-events: none sur le conteneur : les toasts eux-mêmes gèrent les clics */
+  pointer-events: none;
+  max-width: 360px;
+  width: 100%;
+}
+
+/* ─── Toasts (notifications UI) ──────────────────────────── */
+
+/*
+ * Les toasts sont rendus dans #toast-portal par <ToastContainer />.
+ * pointer-events: auto est requis sur chaque toast car le conteneur
+ * parent (#toast-portal) a pointer-events: none.
+ *
+ * Structure d'un toast :
+ *   <div.toast.toast--{type}>
+ *     <Icon.toast-icon.toast-icon--{type} />
+ *     <p.toast-body><span.toast-message /></p>
+ *     <button.toast-dismiss />
+ *   </div>
+ */
+
+/* Conteneur d'un toast individuel */
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: 10px var(--spacing-md);
+  width: 100%;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  /* Sélection du texte autorisée dans les toasts */
+  user-select: text;
+  animation: toast-in var(--transition-fast) ease;
+}
+
+/* Bande colorée gauche — indicateur visuel du type */
+.toast--success {
+  border-left: 3px solid var(--color-positive);
+}
+.toast--error {
+  border-left: 3px solid var(--color-negative);
+}
+.toast--info {
+  border-left: 3px solid var(--color-accent);
+}
+.toast--warning {
+  border-left: 3px solid var(--color-warning);
+}
+
+/* Icône sémantique */
+.toast-icon {
+  flex-shrink: 0;
+  margin-top: 2px; /* Alignement avec la première ligne du texte */
+}
+
+.toast-icon--success {
+  color: var(--color-positive);
+}
+.toast-icon--error {
+  color: var(--color-negative);
+}
+.toast-icon--info {
+  color: var(--color-accent);
+}
+.toast-icon--warning {
+  color: var(--color-warning);
+}
+
+/* Corps du message */
+.toast-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-message {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-normal);
+  /* Retour à la ligne sur les messages longs */
+  word-break: break-word;
+}
+
+/* Bouton de fermeture manuelle */
+.toast-dismiss {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  margin: -2px -4px -2px 0;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: default;
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.toast-dismiss:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-hover);
+}
+
+/* Animation d'entrée : glisse depuis la droite + fondu */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.sidebar {
+  width: 220px;
+  /* min-width garantit que la sidebar ne rétrécit jamais sous 220px,
+     même si un enfant flex la pousse dans l'autre sens. */
+  min-width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-secondary);
+  border-right: 1px solid var(--color-border);
+  /* Scroll interne si la hauteur est insuffisante (rare sur desktop) */
+  overflow-y: auto;
+  scrollbar-width: none; /* Masquer la scrollbar dans la sidebar */
+}
+
+/* ─── Logo / Nom de l'app ────────────────────────────────── */
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-md);
+  border-bottom: 1px solid var(--color-border-light);
+  /* Empêche la sélection du nom (comportement natif desktop) */
+  user-select: none;
+}
+
+.sidebar-logo-icon {
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.sidebar-logo-text {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: 0.015em;
+}
+
+/* ─── Navigation ─────────────────────────────────────────── */
+
+.sidebar-nav {
+  flex: 1;
+  padding: var(--spacing-sm) 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Groupe de sections (ex : "Principal", "Outils", "Système") */
+.sidebar-section {
+  margin-bottom: var(--spacing-xs);
+}
+
+.sidebar-section + .sidebar-section {
+  margin-top: var(--spacing-xs);
+  padding-top: var(--spacing-xs);
+  border-top: 1px solid var(--color-border-light);
+}
+
+/* Étiquette de section */
+.sidebar-section-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--spacing-sm) var(--spacing-md) 4px;
+  user-select: none;
+}
+
+/* ─── Sidebar Item (NavLink) ─────────────────────────────── */
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px var(--spacing-md);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+  /* Bordure gauche : indicateur d'état actif */
+  border-left: 2px solid transparent;
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast);
+  cursor: default;
+}
+
+.sidebar-item:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-hover);
+}
+
+/* État actif : injecté via NavLink className isActive */
+.sidebar-item--active {
+  color: var(--color-accent);
+  background-color: var(--color-accent-subtle);
+  border-left-color: var(--color-accent);
+  font-weight: var(--font-weight-medium);
+}
+
+.sidebar-item--active:hover {
+  color: var(--color-accent-hover);
+  background-color: var(--color-accent-subtle-hover);
+}
+
+/* Icône dans un item */
+.sidebar-item-icon {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.sidebar-item--active .sidebar-item-icon {
+  opacity: 1;
+}
+
+/* ─── Pied de sidebar ────────────────────────────────────── */
+
+.sidebar-footer {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-top: 1px solid var(--color-border-light);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  user-select: none;
+}
+/* ─── Utilitaires de page ────────────────────────────────── */
+
+/* Lien retour utilisé sur les pages detail (ex : TradeDetailsPage) */
+.page-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  cursor: default;
+  transition: color var(--transition-fast);
+}
+
+.page-back-link:hover {
+  color: var(--color-text-primary);
+}
+
+/* ─── Page 404 ────────────────────────────────────────────── */
+
+/* Conteneur : centré dans toute la zone app-content */
+.not-found-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-2xl);
+  text-align: center;
+}
+
+/* Icône d'alerte en haut */
+.not-found-icon {
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Code 404 numérique, grand et discret */
+.not-found-code {
+  font-size: 72px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  line-height: 1;
+  letter-spacing: -2px;
+}
+
+/* Titre de l'erreur */
+.not-found-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-top: var(--spacing-xs);
+}
+
+/* Message descriptif */
+.not-found-message {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  max-width: 340px;
+  line-height: var(--line-height-normal);
+}
+
+/* Bouton retour Dashboard */
+.not-found-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-md);
+  padding: 8px var(--spacing-lg);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  cursor: default;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.not-found-btn:hover {
+  background-color: var(--color-bg-hover);
+  border-color: var(--color-text-muted);
+}
+
+/* ─── Erreur globale de l'application ─────────────────────── */
+
+.app-error-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-2xl);
+  text-align: center;
+}
+
+.app-error-icon {
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-sm);
+}
+
+.app-error-code {
+  font-size: 72px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  line-height: 1;
+  letter-spacing: -2px;
+}
+
+.app-error-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-top: var(--spacing-xs);
+}
+
+.app-error-message {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  max-width: 420px;
+  line-height: var(--line-height-normal);
+}
+
+.app-error-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-md);
+  padding: 8px var(--spacing-lg);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.app-error-btn:hover {
+  background-color: var(--color-bg-hover);
+  border-color: var(--color-text-muted);
+}
+
+/* ─── Utilitaires d'en-tête de page ─────────────────────── */
+
+/*
+ * Structure standard pour l'en-tête d'une page :
+ *
+ *   <div className="page-header">
+ *     <div className="page-header-text">
+ *       <h1 className="page-title">Journal des trades</h1>
+ *       <p className="page-subtitle">Historique complet</p>
+ *     </div>
+ *     <div className="page-actions">
+ *       <button className="topbar-btn topbar-btn--primary">+ Nouveau</button>
+ *     </div>
+ *   </div>
+ *
+ * La topbar affiche déjà le titre via useLocation — .page-header
+ * est utilisé quand la page a besoin d'un second niveau de titre
+ * (ex : sous-section, tableau avec en-tête propre).
+ */
+
+/* Conteneur : titre à gauche, actions à droite */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  min-width: 0;
+}
+
+/* Zone texte — prend tout l'espace disponible sans déborder */
+.page-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Titre principal de la section (différent du titre topbar) */
+.page-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-tight);
+}
+
+/* Sous-titre / description courte sous le titre */
+.page-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-xs);
+  line-height: var(--line-height-normal);
+}
+
+/* Zone boutons — ne se compresse pas */
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+/* Groupement logique dans une page */
+.page-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.page-section:last-child {
+  margin-bottom: 0;
+}
+
+/* ─── Grilles de contenu ─────────────────────────────────── */
+
+/*
+ * .page-grid       — auto-fill : remplit les colonnes dispo, min 280px/colonne.
+ *                    Recommandée pour les listes de cartes.
+ * .page-grid--cols-N — variantes à N colonnes fixes.
+ *                    Réduites automatiquement par les media queries ci-dessous.
+ */
+
+.page-grid {
+  display: grid;
+  gap: var(--spacing-md);
+  /* Auto-fill : s'adapte naturellement à la largeur disponible */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.page-grid--cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.page-grid--cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.page-grid--cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* ─── Tableau scrollable horizontalement ────────────────── */
+
+/*
+ * Wrapper pour <table> : permet le scroll horizontal localisé
+ * sans affecter le reste de la page.
+ * Le overflow-x: hidden de .app-content est intentionnel ;
+ * le scroll horizontal des tableaux se fait ici, pas sur la page.
+ *
+ * Usage :
+ *   <div className="table-wrapper">
+ *     <table style={{ minWidth: "700px" }}>...</table>
+ *   </div>
+ */
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  min-width: 0;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.table-wrapper--virtualized {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.table-wrapper--virtualized thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* ─── Conteneur centré (très larges fenêtres) ───────────── */
+
+/*
+ * Sur les moniteurs ultra-larges (> 1600px), le contenu peut
+ * s'étaler horizontalement et devenir difficile à lire.
+ * Appliquer .content-max pour limiter la largeur et centrer.
+ *
+ * Usage : <div className="content-max">contenu de la page</div>
+ */
+
+.content-max {
+  max-width: 1400px;
+  width: 100%;
+}
+
+/* ─── Responsive desktop ─────────────────────────────────── */
+
+/*
+ * TradingBook est une application desktop-first.
+ * Largeur minimale Tauri : 900px (tauri.conf.json).
+ *
+ * Ces media queries couvrent uniquement les cas de
+ * fenêtres réduites (compact) et non le mobile.
+ *
+ * Fenêtre compacte : 900–1099px
+ *   - Cacher la description dans la topbar
+ *   - Réduire les grilles 3/4 colonnes → 2 colonnes
+ *   - Réduire le padding de .app-content
+ *
+ * Fenêtre très compacte : ≤ 960px (proche du minimum)
+ *   - Toutes les grilles → 1 colonne
+ *   - Réduire le padding de la sidebar
+ */
+
+/* ── Fenêtre compacte : 900–1099px ── */
+@media (max-width: 1099px) {
+  /* Cacher la description topbar — le titre seul reste lisible */
+  .topbar-description {
+    display: none;
+  }
+
+  /* Grilles fixes 3 et 4 colonnes → 2 colonnes */
+  .page-grid--cols-4,
+  .page-grid--cols-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Réduire légèrement le padding du contenu principal */
+  .app-content {
+    padding: var(--spacing-md);
+  }
+}
+
+/* ── Fenêtre très compacte : ≤ 960px ── */
+@media (max-width: 960px) {
+  /* Toutes les grilles fixes → 1 colonne */
+  .page-grid--cols-4,
+  .page-grid--cols-3,
+  .page-grid--cols-2 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Réduire les paddings horizontaux de la sidebar */
+  .sidebar-section-label {
+    padding-left: var(--spacing-sm);
+    padding-right: var(--spacing-sm);
+  }
+
+  .sidebar-item {
+    padding-left: var(--spacing-sm);
+    padding-right: var(--spacing-sm);
+  }
+
+  .sidebar-logo {
+    padding-left: var(--spacing-sm);
+    padding-right: var(--spacing-sm);
+  }
+}
+
+@media (max-width: 1099px) {
+  .global-search {
+    width: min(340px, 44vw);
+  }
+}
+
+@media (max-width: 960px) {
+  .global-search {
+    width: 280px;
+  }
+
+  .global-search-results {
+    width: min(520px, 82vw);
+  }
+
+  .global-search-results__item {
+    grid-template-columns: 1fr;
+    gap: 2px;
+    align-items: start;
+  }
+}

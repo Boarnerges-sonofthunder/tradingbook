@@ -1,0 +1,226 @@
+{
+  "phase": "14",
+  "step": "7",
+  "name": "stress-tests",
+  "started_at": "2026-05-26T03:34:23Z",
+  "ended_at": "2026-05-26T03:34:29Z",
+  "real_db_backup": {
+    "real_db_found": false,
+    "real_db_path": "C:\\Users\\BMilc\\AppData\\Local\\com.tradingbook.app\\tradingbook.db",
+    "backup_path": null,
+    "backup_size_bytes": null
+  },
+  "cases": [
+    {
+      "size": 1000,
+      "errors": [],
+      "db_path": "C:\\Users\\BMilc\\OneDrive\\Bureau\\TradingJournal\\TradingBook\\data\\stress-tests\\db\\tradingbook-stress-1000.db",
+      "db_size_bytes": 1896448,
+      "startup_db_init_ms": 35.36470000108238,
+      "startup_schema_check_ms": 1.1155999964103103,
+      "insert_trades_ms": 19.331099996634293,
+      "csv_write_ms": 67.47940000059316,
+      "csv_import_ms": 104.51889999967534,
+      "query_metrics": {
+        "sqlite_integrity_check_ms": 5.249199995887466,
+        "trades_list_ms": 0.7794999983161688,
+        "trades_filter_ms": 0.28810000367229804,
+        "trades_search_ms": 0.5244999993010424,
+        "trades_sort_ms": 0.7055000023683533,
+        "analytics_summary_ms": 0.23489999875891954,
+        "analytics_by_symbol_ms": 0.26480000087758526,
+        "analytics_chart_series_ms": 0.35319999733474106,
+        "query_plans": {
+          "list": [
+            {
+              "id": 4,
+              "parent": 0,
+              "notused": 209,
+              "detail": "SCAN trades USING COVERING INDEX idx_trades_opened_at"
+            }
+          ],
+          "filter": [
+            {
+              "id": 4,
+              "parent": 0,
+              "notused": 46,
+              "detail": "SEARCH trades USING COVERING INDEX idx_trades_status_symbol_side_opened_at (status=? AND symbol=? AND side=? AND opened_at>? AND opened_at<?)"
+            }
+          ],
+          "search": [
+            {
+              "id": 5,
+              "parent": 0,
+              "notused": 223,
+              "detail": "SCAN trades USING INDEX idx_trades_opened_at"
+            }
+          ]
+        }
+      },
+      "backup_metrics": {
+        "raw_backup_path": "C:\\Users\\BMilc\\OneDrive\\Bureau\\TradingJournal\\TradingBook\\data\\stress-tests\\backups\\stress-db-tradingbook-stress-1000-20260525-233424.db",
+        "zip_backup_path": "C:\\Users\\BMilc\\OneDrive\\Bureau\\TradingJournal\\TradingBook\\data\\stress-tests\\backups\\stress-db-tradingbook-stress-1000-20260525-233424.zip",
+        "raw_backup_ms": 4.098299999895971,
+        "zip_backup_ms": 46.602700000221375,
+        "raw_size_bytes": 1896448,
+        "zip_size_bytes": 430769
+      },
+      "log_metrics": {
+        "log_file": "C:\\Users\\BMilc\\OneDrive\\Bureau\\TradingJournal\\TradingBook\\data\\stress-tests\\logs\\stress-1000-20260525.log",
+        "log_write_ms": 5.641799994918983,
+        "lines_written": 500,
+        "log_size_bytes": 88170
+      },
+      "counts": {
+        "trades_total": 2000,
+        "trades_closed": 1900,
+        "imports_total": 1,
+        "import_rows_total": 1000
+      },
+      "memory_current_bytes": 879903,
+      "memory_peak_bytes": 1768076
+    },
+    {
+      "size": 5000,
+      "errors": [],
+      "db_path": "C:\\Users\\BMilc\\OneDrive\\Bureau\\TradingJournal\\TradingBook\\data\\stress-tests\\db\\tradingbook-stress-5000.db",
+      "db_size_bytes": 8806400,
+      "startup_db_init_ms": 38.88870000082534,
+      "startup_schema_check_ms": 0.8975000018835999,
+      "insert_trades_ms": 113.92200000409503,
+      "csv_write_ms": 347.95589999703225,
+      "csv_import_ms": 560.3324999974575,
+      "query_metrics": {
+        "sqlite_integrity_check_ms": 36.30649999831803,
+        "trades_list_ms": 0.9033999958774075,
+        "trades_filter_ms": 1.2225000027683564,
+        "trades_search_ms": 0.5161999943084083,
+        "trades_sort_ms": 2.164400000765454,
+        "analytics_summary_ms": 1.0066999966511503,
+        "analytics_by_symbol_ms": 1.50269999721786,
+        "analytics_chart_series_ms": 1.8060000002151355,
+        "query_plans": {
+          "list": [
+            {
+              "id": 4,
+              "parent": 0,
+              "notused": 209,
+              "detail": "SCAN trades USING COVERING INDEX idx_trades_opened_at"
+            }
+          ],
+          "filter": [
+            {
+              "id": 4,
+              "parent": 0,
+              "notused": 46,
+              "detail": "SEARCH trades USING COVERING INDEX idx_trades_status_symbol_side_opened_at (status=? AND symbol=? AND side=? AND opened_at>? AND opened_at<?)"
+            }
+          ],
+          "search": [
+            {
+              "id": 5,
+              "parent": 0,
+              "notused": 223,
+              "detail": "SCAN trades USING INDEX idx_trades_opened_at"
+            }
+          ]
+        }
+      },
+      "backup_metrics": {
+        "raw_backup_path": "C:\\Users\\BMilc\\OneDrive\\Bureau\\TradingJournal\\TradingBook\\data\\stress-tests\\backups\\stress-db-tradingbook-stress-5000-20260525-233425.db",
+        "zip_backup_path": "C:\\Users\\BMilc\\OneDrive\\Bureau\\TradingJournal\\TradingBook\\data\\stress-tests\\backups\\stress-db-tradingbook-stress-5000-20260525-233425.zip",
+        "raw_backup_ms": 5.786400004581083,
+        "zip_backup_ms": 196.74899999517947,
+        "raw_size_bytes": 8806400,
+        "zip_size_bytes": 2073675
+      },
+      "log_metrics": {
+        "log_file": "C:\\Users\\BMilc\\OneDrive\\Bureau\\TradingJournal\\TradingBook\\data\\stress-tests\\logs\\stress-5000-20260525.log",
+        "log_write_ms": 5.637399997795001,
+        "lines_written": 500,
+        "log_size_bytes": 88170
+      },
+      "counts": {
+        "trades_total": 10000,
+        "trades_closed": 9500,
+        "imports_total": 1,
+        "import_rows_total": 5000
+      },
+      "memory_current_bytes": 3965163,
+      "memory_peak_bytes": 8278621
+    },
+    {
+      "size": 10000,
+      "errors": [],
+      "db_path": "C:\\Users\\BMilc\\OneDrive\\Bureau\\TradingJournal\\TradingBook\\data\\stress-tests\\db\\tradingbook-stress-10000.db",
+      "db_size_bytes": 17653760,
+      "startup_db_init_ms": 37.909599996055476,
+      "startup_schema_check_ms": 0.8815000037429854,
+      "insert_trades_ms": 233.28480000054697,
+      "csv_write_ms": 658.4258000002592,
+      "csv_import_ms": 1178.1581999966875,
+      "query_metrics": {
+        "sqlite_integrity_check_ms": 62.641399999847636,
+        "trades_list_ms": 0.8034999991650693,
+        "trades_filter_ms": 1.2541000032797456,
+        "trades_search_ms": 0.5552000002353452,
+        "trades_sort_ms": 4.978699995263014,
+        "analytics_summary_ms": 4.631300005712546,
+        "analytics_by_symbol_ms": 13.402099997620098,
+        "analytics_chart_series_ms": 5.138000000442844,
+        "query_plans": {
+          "list": [
+            {
+              "id": 4,
+              "parent": 0,
+              "notused": 209,
+              "detail": "SCAN trades USING COVERING INDEX idx_trades_opened_at"
+            }
+          ],
+          "filter": [
+            {
+              "id": 4,
+              "parent": 0,
+              "notused": 46,
+              "detail": "SEARCH trades USING COVERING INDEX idx_trades_status_symbol_side_opened_at (status=? AND symbol=? AND side=? AND opened_at>? AND opened_at<?)"
+            }
+          ],
+          "search": [
+            {
+              "id": 5,
+              "parent": 0,
+              "notused": 223,
+              "detail": "SCAN trades USING INDEX idx_trades_opened_at"
+            }
+          ]
+        }
+      },
+      "backup_metrics": {
+        "raw_backup_path": "C:\\Users\\BMilc\\OneDrive\\Bureau\\TradingJournal\\TradingBook\\data\\stress-tests\\backups\\stress-db-tradingbook-stress-10000-20260525-233428.db",
+        "zip_backup_path": "C:\\Users\\BMilc\\OneDrive\\Bureau\\TradingJournal\\TradingBook\\data\\stress-tests\\backups\\stress-db-tradingbook-stress-10000-20260525-233428.zip",
+        "raw_backup_ms": 8.249300000898074,
+        "zip_backup_ms": 375.7931000000099,
+        "raw_size_bytes": 17653760,
+        "zip_size_bytes": 4104307
+      },
+      "log_metrics": {
+        "log_file": "C:\\Users\\BMilc\\OneDrive\\Bureau\\TradingJournal\\TradingBook\\data\\stress-tests\\logs\\stress-10000-20260525.log",
+        "log_write_ms": 5.77829999383539,
+        "lines_written": 500,
+        "log_size_bytes": 89670
+      },
+      "counts": {
+        "trades_total": 20000,
+        "trades_closed": 19000,
+        "imports_total": 1,
+        "import_rows_total": 10000
+      },
+      "memory_current_bytes": 7870267,
+      "memory_peak_bytes": 16469006
+    }
+  ],
+  "summary": {
+    "slow_operations": [],
+    "errors": []
+  }
+}

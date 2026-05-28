@@ -1,0 +1,227 @@
+/* ============================================================
+   theme.css — Variables de design global
+   ============================================================
+
+   Architecture :
+     :root                  — Toutes les variables (thème sombre par défaut).
+                              Les variables non-couleur (espacement, typographie,
+                              transitions…) sont déclarées ici uniquement :
+                              elles ne changent pas selon le thème.
+     [data-theme="dark"]    — Tokens couleur du thème sombre explicite.
+                              Activé via applyTheme("dark") dans constants/theme.ts.
+     [data-theme="light"]   — Tokens couleur du thème clair (préparé, non finalisé).
+                              Activé via applyTheme("light") dans constants/theme.ts.
+
+   Utilisation dans les composants :
+     color: var(--color-text-primary);
+     background-color: var(--color-bg-secondary);
+     border: 1px solid var(--color-border);
+     box-shadow: var(--shadow-md);
+
+   Règles importantes :
+     - Ne jamais hardcoder de valeur hex ou rgba dans les composants.
+     - Toute nouvelle couleur doit être ajoutée dans les 3 blocs
+       (:root, [data-theme="dark"], [data-theme="light"]).
+     - Les variables non-couleur ne sont définies que dans :root.
+
+   Ajouter un thème clair (Phase 4, Settings) :
+     1. Finaliser les valeurs dans [data-theme="light"] ci-dessous.
+     2. Appeler applyTheme("light") depuis la page Paramètres.
+     3. Persister la préférence via settingsService.upsertSetting("app.theme", "light").
+     4. Charger la préférence au démarrage dans App.tsx useEffect.
+   ============================================================ */
+
+/* ────────────────────────────────────────────────────────────
+   Thème sombre — Défaut de l'application
+   Toutes les variables de design sont définies ici.
+   ──────────────────────────────────────────────────────────── */
+
+:root {
+  /* ─── Backgrounds (niveaux de profondeur) ──────────────── */
+  /* primary   : fond de l'application (le plus profond)     */
+  /* secondary : fond des panneaux, sidebar, topbar           */
+  /* tertiary  : fond des inputs, boutons, tags               */
+  /* hover     : survol des éléments interactifs              */
+  --color-bg-primary: #0f1117;
+  --color-bg-secondary: #161b27;
+  --color-bg-tertiary: #1e2533;
+  --color-bg-hover: #252d3d;
+
+  /* ─── Surfaces (alias sémantiques) ─────────────────────── */
+  /* Identiques aux backgrounds — préférer ces noms dans les  */
+  /* composants "carte" et "modal" pour la lisibilité.        */
+  /* surface     : équivalent bg-secondary (cartes, modaux)   */
+  /* surface-alt : équivalent bg-tertiary (zones imbriquées)  */
+  --color-surface: var(--color-bg-secondary);
+  --color-surface-alt: var(--color-bg-tertiary);
+
+  /* ─── Bordures ─────────────────────────────────────────── */
+  --color-border: #2a3040;
+  --color-border-light: #1c2232;
+
+  /* ─── Texte ─────────────────────────────────────────────── */
+  --color-text-primary: #e8edf3;
+  --color-text-secondary: #8892a4;
+  --color-text-muted: #4a5568;
+
+  /* ─── Overlay (modaux, drawers, dropdowns) ─────────────── */
+  --color-overlay: rgba(0, 0, 0, 0.6);
+
+  /* ─── Accent (actions, liens, états actifs) ─────────────── */
+  --color-accent: #4a90e2;
+  --color-accent-hover: #5aa0f2;
+  --color-accent-foreground: #ffffff; /* Texte sur fond accent       */
+  --color-accent-subtle: rgba(74, 144, 226, 0.08); /* Fond actif discret  */
+  --color-accent-subtle-hover: rgba(
+    74,
+    144,
+    226,
+    0.12
+  ); /* Fond survol actif  */
+
+  /* ─── Couleurs sémantiques trading ─────────────────────── */
+  --color-positive: #2ecc71; /* Profit, succès    */
+  --color-negative: #e74c3c; /* Perte, danger     */
+  --color-warning: #f0b429; /* Alerte, attention */
+  --color-neutral: #8892a4; /* Neutre, info      */
+
+  /* Variantes subtiles — fonds de badges et surbrillances    */
+  --color-positive-subtle: rgba(46, 204, 113, 0.12);
+  --color-negative-subtle: rgba(231, 76, 60, 0.12);
+  --color-warning-subtle: rgba(240, 180, 41, 0.12);
+
+  /* Texte sur fond coloré (badges pleins futurs)             */
+  --color-positive-foreground: #ffffff;
+  --color-negative-foreground: #ffffff;
+
+  /* ─── Ombres ─────────────────────────────────────────────── */
+  /* Plus prononcées sur thème sombre pour maintenir la profondeur */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+
+  /* ─── Espacement (identique dans tous les thèmes) ────────── */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+
+  /* ─── Arrondis ─────────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-full: 9999px; /* Pilules, avatars circulaires  */
+
+  /* ─── Typographie ───────────────────────────────────────── */
+  --font-sans:
+    "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:
+    "JetBrains Mono", "Fira Code", "Cascadia Code", "Consolas", monospace;
+
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-md: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 22px;
+  --font-size-2xl: 28px;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  /* ─── Transitions ───────────────────────────────────────── */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+
+  /* ─── Couches z-index ───────────────────────────────────── */
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-overlay: 150; /* Entre dropdowns (100) et modaux (200)  */
+  --z-modal: 200;
+  --z-tooltip: 300;
+}
+
+/* ────────────────────────────────────────────────────────────
+   [data-theme="dark"] — Thème sombre explicite
+   Activé par applyTheme("dark") dans src/constants/theme.ts.
+   Redéfinit uniquement les tokens couleur.
+   Les variables non-couleur (:root) restent actives.
+   ──────────────────────────────────────────────────────────── */
+
+[data-theme="dark"] {
+  --color-bg-primary: #0f1117;
+  --color-bg-secondary: #161b27;
+  --color-bg-tertiary: #1e2533;
+  --color-bg-hover: #252d3d;
+  --color-surface: var(--color-bg-secondary);
+  --color-surface-alt: var(--color-bg-tertiary);
+  --color-border: #2a3040;
+  --color-border-light: #1c2232;
+  --color-text-primary: #e8edf3;
+  --color-text-secondary: #8892a4;
+  --color-text-muted: #4a5568;
+  --color-overlay: rgba(0, 0, 0, 0.6);
+  --color-accent: #4a90e2;
+  --color-accent-hover: #5aa0f2;
+  --color-accent-foreground: #ffffff;
+  --color-accent-subtle: rgba(74, 144, 226, 0.08);
+  --color-accent-subtle-hover: rgba(74, 144, 226, 0.12);
+  --color-positive: #2ecc71;
+  --color-negative: #e74c3c;
+  --color-warning: #f0b429;
+  --color-neutral: #8892a4;
+  --color-positive-subtle: rgba(46, 204, 113, 0.12);
+  --color-negative-subtle: rgba(231, 76, 60, 0.12);
+  --color-warning-subtle: rgba(240, 180, 41, 0.12);
+  --color-positive-foreground: #ffffff;
+  --color-negative-foreground: #ffffff;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* ────────────────────────────────────────────────────────────
+   [data-theme="light"] — Thème clair (préparé, non finalisé)
+   Activé par applyTheme("light") dans src/constants/theme.ts.
+
+   À finaliser en Phase 4 lors de l'implémentation de la page
+   Paramètres. Les valeurs ci-dessous sont validées visuellement
+   mais pourront être affinées selon les retours utilisateur.
+   ──────────────────────────────────────────────────────────── */
+
+[data-theme="light"] {
+  --color-bg-primary: #f4f6f9;
+  --color-bg-secondary: #ffffff;
+  --color-bg-tertiary: #eef1f5;
+  --color-bg-hover: #e4e8ef;
+  --color-surface: var(--color-bg-secondary);
+  --color-surface-alt: var(--color-bg-tertiary);
+  --color-border: #d0d7e2;
+  --color-border-light: #e8ecf2;
+  --color-text-primary: #1a202c;
+  --color-text-secondary: #4a5568;
+  --color-text-muted: #9aa5b4;
+  --color-overlay: rgba(0, 0, 0, 0.4);
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-accent-foreground: #ffffff;
+  --color-accent-subtle: rgba(37, 99, 235, 0.08);
+  --color-accent-subtle-hover: rgba(37, 99, 235, 0.12);
+  --color-positive: #16a34a;
+  --color-negative: #dc2626;
+  --color-warning: #d97706;
+  --color-neutral: #6b7280;
+  --color-positive-subtle: rgba(22, 163, 74, 0.1);
+  --color-negative-subtle: rgba(220, 38, 38, 0.1);
+  --color-warning-subtle: rgba(217, 119, 6, 0.1);
+  --color-positive-foreground: #ffffff;
+  --color-negative-foreground: #ffffff;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
