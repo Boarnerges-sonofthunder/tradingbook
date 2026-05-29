@@ -130,6 +130,7 @@ describe("aiPromptBuilder", () => {
     expect(prompt).toContain("tradeNotes");
     expect(prompt).toContain("tradeMistakes");
     expect(prompt).toContain("Je prefere des reponses courtes.");
+    expect(prompt).toContain("retenir une information durable");
   });
 
   it("injects active memory scope in system prompt", () => {

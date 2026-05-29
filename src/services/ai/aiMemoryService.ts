@@ -22,6 +22,13 @@ function normalizeMemoryText(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
+function simplifyMemoryText(text: string): string {
+  return normalizeMemoryText(text)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 function emptyMemoryState(): AIMemoryState {
   return {
     facts: [],
@@ -62,7 +69,44 @@ function buildMemorySummary(
 
 function truncateText(text: string, limit: number): string {
   if (text.length <= limit) return text;
-  return `${text.slice(0, Math.max(0, limit - 1)).trimEnd()}…`;
+  return `${text.slice(0, Math.max(0, limit - 1)).trimEnd()}...`;
+}
+
+function classifyMemoryFactSource(
+  text: string,
+): AIMemoryFact["source"] | null {
+  const simplified = simplifyMemoryText(text);
+
+  if (
+    /^(mon objectif|mes objectifs|my goal|my goals|je veux|i want)\b/.test(
+      simplified,
+    )
+  ) {
+    return "user_goal";
+  }
+
+  if (/^(je prefere|i prefer|toujours|always|jamais|never)\b/.test(simplified)) {
+    return "user_preference";
+  }
+
+  if (/^(ma regle|mes regles|my rule|my rules)\b/.test(simplified)) {
+    return "user_rule";
+  }
+
+  return null;
+}
+
+function extractExplicitMemoryContent(text: string): string | null {
+  const normalized = normalizeMemoryText(text);
+  const simplified = simplifyMemoryText(text);
+  const prefixMatch = simplified.match(
+    /^(rappelle[- ]toi|souviens[- ]toi|remember|note|retiens|memorise|garde(?:\s+(?:ca|cela|ceci))?\s+en memoire|ajoute(?:\s+(?:ca|cela|ceci))?\s+a\s+ta\s+memoire|enregistre(?:\s+(?:ca|cela|ceci))?\s+en memoire)(?:\s+que)?\b[:,-]?\s*/,
+  );
+
+  if (!prefixMatch) return null;
+
+  const content = normalizeMemoryText(normalized.slice(prefixMatch[0].length));
+  return content || null;
 }
 
 export function extractPersistentMemoryFact(message: string): {
@@ -72,39 +116,15 @@ export function extractPersistentMemoryFact(message: string): {
   const normalized = normalizeMemoryText(message);
   if (!normalized) return null;
 
-  const lower = normalized.toLowerCase();
-  const patterns: Array<{
-    test: (text: string) => boolean;
-    source: AIMemoryFact["source"];
-  }> = [
-    {
-      test: (text) =>
-        /^(rappelle[- ]toi|souviens[- ]toi|remember|note|retiens)\b/.test(text),
-      source: "user_context",
-    },
-    {
-      test: (text) =>
-        /^(mon objectif|mes objectifs|my goal|my goals|je veux|i want)\b/.test(text),
-      source: "user_goal",
-    },
-    {
-      test: (text) =>
-        /^(je prefere|je préfère|i prefer|toujours|always|jamais|never)\b/.test(text),
-      source: "user_preference",
-    },
-    {
-      test: (text) =>
-        /^(ma regle|ma règle|mes regles|mes règles|my rule|my rules)\b/.test(text),
-      source: "user_rule",
-    },
-  ];
+  const explicitContent = extractExplicitMemoryContent(normalized);
+  const factContent = explicitContent ?? normalized;
+  const source = classifyMemoryFactSource(factContent);
 
-  const matched = patterns.find(({ test }) => test(lower));
-  if (!matched) return null;
+  if (!explicitContent && !source) return null;
 
   return {
-    content: truncateText(normalized, 220),
-    source: matched.source,
+    content: truncateText(factContent, 220),
+    source: source ?? "user_context",
   };
 }
 
@@ -116,7 +136,7 @@ export function buildInteractionMemorySummary(
   const assistant = normalizeMemoryText(assistantMessage);
   if (!user || !assistant) return null;
 
-  const summary = `Sujet: ${truncateText(user, 120)} | Réponse: ${truncateText(assistant, 180)}`;
+  const summary = `Sujet: ${truncateText(user, 120)} | Reponse: ${truncateText(assistant, 180)}`;
   return truncateText(summary, 320);
 }
 
@@ -146,7 +166,8 @@ export async function loadAIMemoryState(): Promise<AIMemoryState> {
             scopeLabel: summary.scopeLabel ?? null,
           }))
         : [],
-      updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : nowIso(),
+      updatedAt:
+        typeof parsed.updatedAt === "string" ? parsed.updatedAt : nowIso(),
     };
   } catch {
     return emptyMemoryState();

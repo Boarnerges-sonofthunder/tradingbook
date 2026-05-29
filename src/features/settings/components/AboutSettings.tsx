@@ -12,6 +12,14 @@ interface LocalReleaseNote {
 // Notes de version locales: source simple, sans serveur ni dépendance cloud.
 const LOCAL_RELEASE_NOTES: LocalReleaseNote[] = [
   {
+    version: "0.1.12",
+    date: "2026-05-29",
+    notes: [
+      "Demandes explicites de type memorise/retiens/ajoute a ta memoire sont enregistrees en memoire locale",
+      "Coach IA confirme mieux quand une information durable doit etre retenue",
+    ],
+  },
+  {
     version: "0.1.11",
     date: "2026-05-29",
     notes: [

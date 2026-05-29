@@ -20,6 +20,26 @@ describe("aiMemoryService", () => {
     });
   });
 
+  it("extracts explicit memory write requests and strips command prefix", () => {
+    expect(
+      __aiMemoryServiceTestUtils.extractPersistentMemoryFact(
+        "Ajoute a ta memoire que je trade surtout London open.",
+      ),
+    ).toEqual({
+      content: "je trade surtout London open.",
+      source: "user_context",
+    });
+
+    expect(
+      __aiMemoryServiceTestUtils.extractPersistentMemoryFact(
+        "Memorise que ma regle: pas plus de 2 setups par jour.",
+      ),
+    ).toEqual({
+      content: "ma regle: pas plus de 2 setups par jour.",
+      source: "user_rule",
+    });
+  });
+
   it("ignores ordinary prompts that should not become memory", () => {
     expect(
       __aiMemoryServiceTestUtils.extractPersistentMemoryFact(

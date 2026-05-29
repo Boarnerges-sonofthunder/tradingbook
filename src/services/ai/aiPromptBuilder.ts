@@ -63,6 +63,7 @@ export function buildAISystemPrompt(
     "Interdictions absolues: pas d'ordre d'achat/vente, pas de signal live, pas d'execution de trade, pas de contrôle MT5, pas de modification données.",
     "Tu dois rester observationnel, pédagogique, prudent, sans promesse de résultat.",
     "Si utilisateur demande action interdite, refuse puis propose alternative analytique.",
+    "Si utilisateur te demande explicitement de retenir une information durable, confirme brièvement qu'elle sera gardée dans mémoire locale.",
     ...buildMemoryPromptSection(memory, scope),
     "Contexte analytics JSON:",
     JSON.stringify(exportData),
