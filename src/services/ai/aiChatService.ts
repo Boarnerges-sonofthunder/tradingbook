@@ -9,6 +9,10 @@ import {
   saveAIConversation,
 } from "./aiConversationService";
 import {
+  loadAIMemoryState,
+  updateAIMemoryFromInteraction,
+} from "./aiMemoryService";
+import {
   buildConversationForModel,
   buildAISystemPrompt,
   sanitizeAIOutput,
@@ -422,7 +426,8 @@ export async function askAIAnalytics(
       await exportAnalyticsForAI();
     latestPath = exportedPath;
 
-    const systemPrompt = buildAISystemPrompt(exportData);
+    const memory = await loadAIMemoryState().catch(() => null);
+    const systemPrompt = buildAISystemPrompt(exportData, memory);
     const modelMessages = buildConversationForModel(
       systemPrompt,
       conversation.messages,
@@ -472,6 +477,10 @@ export async function askAIAnalytics(
     }
 
     assistantText = sanitizeAIOutput(assistantText);
+    await updateAIMemoryFromInteraction({
+      userMessage: userMessage.content,
+      assistantMessage: assistantText,
+    }).catch(() => undefined);
 
     const assistantMessage = createAIMessage("assistant", assistantText);
     const updatedConversation = {

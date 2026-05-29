@@ -11,9 +11,15 @@ export {
   ensureAISandboxFolders,
   getAIExportsFolderPath,
   getAILogsFolderPath,
+  getAIMemoryFilePath,
   assertAISandboxReadablePath,
   AI_SANDBOX_LIMITATIONS,
 } from "./aiSandboxService";
+export {
+  loadAIMemoryState,
+  saveAIMemoryState,
+  clearAIMemoryState,
+} from "./aiMemoryService";
 export {
   getAIProviderSettings,
   saveAIProviderSettings,

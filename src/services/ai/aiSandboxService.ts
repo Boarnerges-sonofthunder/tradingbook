@@ -4,6 +4,7 @@ import { getAppLocalDataDir, getFolderPath } from "../filesystem";
 
 const AI_EXPORTS_FOLDER = "ai_exports";
 const AI_LOGS_SUBFOLDER = "ai";
+const AI_MEMORY_FILENAME = "ai-memory.json";
 export const AI_RETENTION_DAYS = 7;
 
 function parseDateFromExportFilename(filename: string): Date | null {
@@ -60,6 +61,11 @@ export async function getAILogsFolderPath(): Promise<string> {
 export async function getAIExportFilePath(filename: string): Promise<string> {
   const exportsDir = await getAIExportsFolderPath();
   return join(exportsDir, filename);
+}
+
+export async function getAIMemoryFilePath(): Promise<string> {
+  const exportsDir = await getAIExportsFolderPath();
+  return join(exportsDir, AI_MEMORY_FILENAME);
 }
 
 export async function getAILogFilePath(filename: string): Promise<string> {
@@ -134,6 +140,6 @@ export const AI_SANDBOX_LIMITATIONS: string[] = [
   "Aucun accès SQLite direct.",
   "Aucun accès MT5.",
   "Aucune exécution shell/commande système.",
-  "Aucun accès filesystem global hors ai_exports et logs/ai.",
+  "Mémoire locale limitée à ai-memory.json, ai_exports et logs/ai.",
   "Aucun auto-trading, aucun signal live.",
 ];

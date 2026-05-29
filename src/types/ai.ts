@@ -85,6 +85,26 @@ export interface AIConversationState {
   messages: AIChatMessage[];
 }
 
+export interface AIMemoryFact {
+  id: string;
+  content: string;
+  source: "user_preference" | "user_goal" | "user_rule" | "user_context";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AIMemorySummary {
+  id: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface AIMemoryState {
+  facts: AIMemoryFact[];
+  summaries: AIMemorySummary[];
+  updatedAt: string;
+}
+
 export interface AIInsightCard {
   id: string;
   title: string;

@@ -1,4 +1,4 @@
-import type { AIAnalyticsExport, AIChatMessage } from "../../types/ai";
+import type { AIAnalyticsExport, AIChatMessage, AIMemoryState } from "../../types/ai";
 import { AI_SANDBOX_LIMITATIONS } from "./aiSandboxService";
 
 export interface AIModelMessage {
@@ -18,7 +18,33 @@ const FORBIDDEN_PATTERNS = [
   "ordre market",
 ];
 
-export function buildAISystemPrompt(exportData: AIAnalyticsExport): string {
+function buildMemoryPromptSection(memory: AIMemoryState | null | undefined): string[] {
+  if (!memory) return [];
+
+  const facts = memory.facts
+    .slice(0, 12)
+    .map((fact) => `- ${fact.content}`);
+  const summaries = memory.summaries
+    .slice(0, 6)
+    .map((summary) => `- ${summary.content}`);
+
+  if (facts.length === 0 && summaries.length === 0) {
+    return [];
+  }
+
+  return [
+    "Mémoire locale utilisateur:",
+    facts.length > 0 ? facts.join("\n") : "- aucune préférence durable mémorisée",
+    "Résumés persistants récents:",
+    summaries.length > 0 ? summaries.join("\n") : "- aucun résumé persistant",
+    "Utilise cette mémoire comme contexte secondaire local, sans inventer ni surinterpréter.",
+  ];
+}
+
+export function buildAISystemPrompt(
+  exportData: AIAnalyticsExport,
+  memory?: AIMemoryState | null,
+): string {
   return [
     "Tu es TradingBook AI Coach, assistant analytique local.",
     "Mission: analyse stats de trading, discipline, psychologie, risk management général.",
@@ -27,6 +53,7 @@ export function buildAISystemPrompt(exportData: AIAnalyticsExport): string {
     "Interdictions absolues: pas d'ordre d'achat/vente, pas de signal live, pas d'execution de trade, pas de contrôle MT5, pas de modification données.",
     "Tu dois rester observationnel, pédagogique, prudent, sans promesse de résultat.",
     "Si utilisateur demande action interdite, refuse puis propose alternative analytique.",
+    ...buildMemoryPromptSection(memory),
     "Contexte analytics JSON:",
     JSON.stringify(exportData),
     "Limitations sandbox:",

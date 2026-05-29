@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AIAnalyticsExport, AIChatMessage } from "../../types/ai";
+import type { AIAnalyticsExport, AIChatMessage, AIMemoryState } from "../../types/ai";
 import {
   buildConversationForModel,
   buildAISystemPrompt,
@@ -87,9 +87,31 @@ function buildExportStub(): AIAnalyticsExport {
   };
 }
 
+function buildMemoryStub(): AIMemoryState {
+  return {
+    facts: [
+      {
+        id: "fact-1",
+        content: "Je préfère des réponses courtes.",
+        source: "user_preference",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ],
+    summaries: [
+      {
+        id: "summary-1",
+        content: "Sujet: drawdown | Réponse: attention aux entrées impulsives.",
+        createdAt: new Date().toISOString(),
+      },
+    ],
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 describe("aiPromptBuilder", () => {
   it("injects analytics and limitations in system prompt", () => {
-    const prompt = buildAISystemPrompt(buildExportStub());
+    const prompt = buildAISystemPrompt(buildExportStub(), buildMemoryStub());
 
     expect(prompt).toContain("Contexte analytics JSON:");
     expect(prompt).toContain("Limitations sandbox:");
@@ -97,6 +119,8 @@ describe("aiPromptBuilder", () => {
     expect(prompt).toContain("Tu dois aussi prendre en compte les notes normales de trade");
     expect(prompt).toContain("tradeNotes");
     expect(prompt).toContain("tradeMistakes");
+    expect(prompt).toContain("Mémoire locale utilisateur:");
+    expect(prompt).toContain("Je préfère des réponses courtes.");
   });
 
   it("sanitizes forbidden trading instructions", () => {
