@@ -42,6 +42,8 @@ import {
 import type { Mistake, TradeMistake } from "../../../types";
 import { useNotification } from "../../../hooks";
 
+const PENDING_MISTAKE_NOTE_DRAFT_KEY_PREFIX = "trade-mistakes:pending-note:";
+
 // ─── Props ────────────────────────────────────────────────
 
 interface TradeMistakesSectionProps {
@@ -89,6 +91,28 @@ export default function TradeMistakesSection({
 
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // ── Persistance brouillon note optionnelle ─────────────
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const storageKey = `${PENDING_MISTAKE_NOTE_DRAFT_KEY_PREFIX}${tradeId}`;
+    const savedDraft = window.localStorage.getItem(storageKey);
+    if (savedDraft) setPendingNote(savedDraft);
+  }, [tradeId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const storageKey = `${PENDING_MISTAKE_NOTE_DRAFT_KEY_PREFIX}${tradeId}`;
+    if (pendingNote.trim().length === 0) {
+      window.localStorage.removeItem(storageKey);
+      return;
+    }
+
+    window.localStorage.setItem(storageKey, pendingNote);
+  }, [tradeId, pendingNote]);
 
   // ── Chargement initial ────────────────────────────────
 

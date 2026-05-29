@@ -36,6 +36,7 @@ import { ValidationError } from "../../../validation";
 
 /** Limite de caractères — identique à NoteContentSchema. */
 const MAX_CHARS = 10_000;
+const NEW_NOTE_DRAFT_KEY_PREFIX = "trade-notes:new-content:";
 
 // ─── Props ─────────────────────────────────────────────────
 
@@ -78,6 +79,28 @@ export default function TradeNotesSection({ tradeId }: TradeNotesSectionProps) {
   const [deleteTarget, setDeleteTarget] = useState<TradeNote | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // ── Persistance brouillon (nouvelle note) ───────────────
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const storageKey = `${NEW_NOTE_DRAFT_KEY_PREFIX}${tradeId}`;
+    const savedDraft = window.localStorage.getItem(storageKey);
+    if (savedDraft) setNewContent(savedDraft);
+  }, [tradeId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const storageKey = `${NEW_NOTE_DRAFT_KEY_PREFIX}${tradeId}`;
+    if (newContent.trim().length === 0) {
+      window.localStorage.removeItem(storageKey);
+      return;
+    }
+
+    window.localStorage.setItem(storageKey, newContent);
+  }, [tradeId, newContent]);
+
   // ── Chargement initial ───────────────────────────────────
 
   useEffect(() => {
@@ -112,6 +135,11 @@ export default function TradeNotesSection({ tradeId }: TradeNotesSectionProps) {
       const note = await createNote(tradeId, trimmed);
       setNotes((prev) => [...prev, note]);
       setNewContent("");
+
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(`${NEW_NOTE_DRAFT_KEY_PREFIX}${tradeId}`);
+      }
+
       notify.success("Note ajoutée");
     } catch (err) {
       if (err instanceof ValidationError) {
