@@ -12,6 +12,12 @@ import {
   getWinRateStats,
 } from "../analytics";
 import { getMistakes } from "../mistakes/mistakesService";
+import {
+  findRecentNotesWithTradeContext,
+} from "../../repositories/notesRepository";
+import {
+  findRecentTradeMistakes,
+} from "../../repositories/mistakesRepository";
 import type { AIAnalyticsExport } from "../../types/ai";
 import {
   AI_RETENTION_DAYS,
@@ -53,6 +59,8 @@ export async function exportAnalyticsForAI(): Promise<AIExportResult> {
     session,
     symbol,
     mistakes,
+    tradeNotes,
+    tradeMistakes,
   ] = await Promise.all([
     getPnLStats(),
     getDrawdownStats(),
@@ -65,6 +73,8 @@ export async function exportAnalyticsForAI(): Promise<AIExportResult> {
     getSessionStats({ status: "closed" }),
     getSymbolStats(),
     getMistakes(),
+    findRecentNotesWithTradeContext(30),
+    findRecentTradeMistakes(30),
   ]);
 
   const currency = pnl.stats?.currency ?? "USD";
@@ -106,6 +116,8 @@ export async function exportAnalyticsForAI(): Promise<AIExportResult> {
       .slice(0, 8)
       .map((item) => item.emotionName),
     errors: mistakes.slice(0, 12).map((item) => item.name),
+    tradeNotes,
+    tradeMistakes,
     strategies: strategy.byStrategy.slice(0, 8).map((item) => ({
       strategyName: item.strategyName,
       totalTrades: item.totalTrades,

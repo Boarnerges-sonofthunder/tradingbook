@@ -44,6 +44,20 @@ export interface AIAnalyticsExport {
   habits: string[];
   emotions: string[];
   errors: string[];
+  tradeNotes: Array<{
+    tradeId: number;
+    tradeSymbol: string;
+    content: string;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+  tradeMistakes: Array<{
+    tradeId: number;
+    tradeSymbol: string;
+    mistakeName: string;
+    notes: string | null;
+    createdAt: string;
+  }>;
   strategies: Array<{
     strategyName: string;
     totalTrades: number;

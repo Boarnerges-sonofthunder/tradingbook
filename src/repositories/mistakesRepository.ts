@@ -147,6 +147,39 @@ export async function findMistakesByTradeId(tradeId: number): Promise<TradeMista
   }));
 }
 
+export async function findRecentTradeMistakes(
+  limit = 25,
+): Promise<
+  Array<{
+    tradeId: number;
+    tradeSymbol: string;
+    mistakeName: string;
+    notes: string | null;
+    createdAt: string;
+  }>
+> {
+  const db = await getDb();
+  const rows = await db.select<
+    Array<TradeMistakeRow & { name: string; symbol: string }>
+  >(
+    `SELECT tm.trade_id, tm.mistake_id, tm.notes, tm.created_at, m.name, t.symbol
+     FROM trade_mistakes tm
+     INNER JOIN mistakes m ON m.id = tm.mistake_id
+     INNER JOIN trades t ON t.id = tm.trade_id
+     ORDER BY tm.created_at DESC
+     LIMIT $1`,
+    [limit]
+  );
+
+  return rows.map((row) => ({
+    tradeId: row.trade_id,
+    tradeSymbol: row.symbol,
+    mistakeName: row.name,
+    notes: row.notes,
+    createdAt: row.created_at,
+  }));
+}
+
 /**
  * Retourne toutes les liaisons trade ↔ erreur de la base de données.
  * Utilisé par les services analytics qui agrègent par habitudes.

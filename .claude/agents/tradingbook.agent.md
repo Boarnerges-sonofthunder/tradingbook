@@ -333,14 +333,6 @@ Ne pas redessiner l’architecture principale sans approbation explicite.
 
 Toujours garder en tête la philosophie local-first desktop.
 
-Lors de toute recommandation fonctionnelle ou produit, prendre en compte :
-
-- les notes d’erreur
-- les notes normales
-- leur contexte d’usage réel
-
-Si ces notes se contredisent, signaler le conflit et privilégier le contexte le plus récent et le plus concret.
-
 # Règles de commentaires du code
 
 Toujours commenter le code de manière claire et professionnelle.

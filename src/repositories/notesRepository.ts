@@ -19,6 +19,14 @@ export interface TradeNote {
   updatedAt: string;
 }
 
+export interface TradeNoteContext {
+  tradeId: number;
+  tradeSymbol: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ------------------------------------------------------------
 // Type interne — colonnes SQLite (snake_case)
 // ------------------------------------------------------------
@@ -76,6 +84,30 @@ export async function findNotesByTradeId(tradeId: number): Promise<TradeNote[]> 
     [tradeId]
   );
   return rows.map(rowToNote);
+}
+
+export async function findRecentNotesWithTradeContext(
+  limit = 25,
+): Promise<TradeNoteContext[]> {
+  const db = await getDb();
+  const rows = await db.select<
+    Array<NoteRow & { symbol: string }>
+  >(
+    `SELECT n.*, t.symbol
+     FROM trade_notes n
+     INNER JOIN trades t ON t.id = n.trade_id
+     ORDER BY n.updated_at DESC
+     LIMIT $1`,
+    [limit]
+  );
+
+  return rows.map((row) => ({
+    tradeId: row.trade_id,
+    tradeSymbol: row.symbol,
+    content: row.content,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
 }
 
 // ------------------------------------------------------------

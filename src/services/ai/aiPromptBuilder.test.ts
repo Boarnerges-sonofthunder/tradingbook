@@ -41,6 +41,24 @@ function buildExportStub(): AIAnalyticsExport {
     habits: ["Perte fréquente pendant New York afternoon"],
     emotions: ["FOMO"],
     errors: ["Entrée impulsive"],
+    tradeNotes: [
+      {
+        tradeId: 7,
+        tradeSymbol: "EURUSD",
+        content: "J'ai coupé trop tôt.",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ],
+    tradeMistakes: [
+      {
+        tradeId: 7,
+        tradeSymbol: "EURUSD",
+        mistakeName: "FOMO",
+        notes: "Entrée hors plan",
+        createdAt: new Date().toISOString(),
+      },
+    ],
     strategies: [
       {
         strategyName: "Breakout",
@@ -76,6 +94,9 @@ describe("aiPromptBuilder", () => {
     expect(prompt).toContain("Contexte analytics JSON:");
     expect(prompt).toContain("Limitations sandbox:");
     expect(prompt).toContain("Breakout");
+    expect(prompt).toContain("Tu dois aussi prendre en compte les notes normales de trade");
+    expect(prompt).toContain("tradeNotes");
+    expect(prompt).toContain("tradeMistakes");
   });
 
   it("sanitizes forbidden trading instructions", () => {
