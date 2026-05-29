@@ -333,6 +333,14 @@ Ne pas redessiner l’architecture principale sans approbation explicite.
 
 Toujours garder en tête la philosophie local-first desktop.
 
+Lors de toute recommandation fonctionnelle ou produit, prendre en compte :
+
+- les notes d’erreur
+- les notes normales
+- leur contexte d’usage réel
+
+Si ces notes se contredisent, signaler le conflit et privilégier le contexte le plus récent et le plus concret.
+
 # Règles de commentaires du code
 
 Toujours commenter le code de manière claire et professionnelle.
@@ -411,3 +419,48 @@ L’architecture doit suivre ce principe :
 ```text
 Broker → Plateforme de trading → Bridge local ou CSV → TradingBook → SQLite
 ```
+
+## Workflow Git Obligatoire
+
+Après chaque tâche terminée (fonctionnalité, correction de bug, refactorisation, migration, documentation ou modification d’architecture), l’agent doit :
+
+1. Vérifier que le projet compile correctement.
+2. Exécuter les vérifications pertinentes (TypeScript, lint, tests si disponibles).
+3. Vérifier les fichiers modifiés afin d’éviter les changements accidentels.
+4. Créer un message de commit clair et descriptif.
+5. Committer le travail terminé.
+6. Pousser immédiatement les modifications vers le dépôt GitHub distant.
+
+Workflow obligatoire :
+
+```bash
+git add .
+git commit -m "<description claire de la modification>"
+git push
+```
+
+Règles :
+
+- Ne jamais laisser du travail terminé sans commit.
+- Ne jamais regrouper plusieurs fonctionnalités non liées dans un même commit.
+- Effectuer des commits fréquents avec des messages explicites.
+- Effectuer un push après chaque tâche terminée, sauf instruction contraire explicite.
+- Si le push échoue, expliquer la raison et fournir l’erreur exacte.
+- Avant de commencer une nouvelle tâche importante, vérifier que la précédente a été commitée et poussée.
+- Ne jamais réécrire l’historique Git sauf demande explicite.
+- Ne jamais utiliser `git push --force` sans autorisation explicite.
+- Maintenir la branche principale stable et compilable en permanence.
+
+Ne pas effectuer de commit ou de push si :
+
+- l’application ne compile pas ;
+- TypeScript contient des erreurs ;
+- les tests échouent (si des tests existent) ;
+- une migration est incomplète ;
+- un secret, mot de passe, token ou clé API est présent dans les fichiers modifiés.
+
+À la fin de chaque tâche, l’agent doit indiquer :
+
+- les fichiers modifiés ;
+- le message de commit utilisé ;
+- le statut du push (Succès ou Échec).
