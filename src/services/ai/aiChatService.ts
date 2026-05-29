@@ -1,4 +1,5 @@
 import type { AIChatRequest, AIChatResponse } from "../../types/ai";
+import { fetch } from "@tauri-apps/plugin-http";
 import { createLogger } from "../logging";
 import { exportAnalyticsForAI } from "./aiExportService";
 import {
