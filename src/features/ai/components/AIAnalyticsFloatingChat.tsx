@@ -2,8 +2,8 @@
 // Composant — Fenêtre chat IA flottante pour Analytics
 // ============================================================
 // Mini-chat flottant déclenché depuis le bouton "Analyse IA"
-// de la page Analytics. Lance automatiquement un résumé rapide
-// à l'ouverture et permet des questions de suivi.
+// de la page Analytics. L'utilisateur peut lancer manuellement
+// une première analyse puis poser des questions de suivi.
 // ============================================================
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -72,7 +72,6 @@ export default function AIAnalyticsFloatingChat({
   const [streaming, setStreaming] = useState(false);
   const [streamDraft, setStreamDraft] = useState("");
   const [errorText, setErrorText] = useState<string | null>(null);
-  const [autoStarted, setAutoStarted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const settings = useUserSettings();
 
@@ -93,13 +92,6 @@ export default function AIAnalyticsFloatingChat({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [displayedMessages.length, streaming]);
-
-  // Lance résumé automatique à l'ouverture (une seule fois par session)
-  useEffect(() => {
-    if (!isOpen || autoStarted) return;
-    setAutoStarted(true);
-    void submitMessage(getInitialPrompt(settings.language));
-  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function submitMessage(rawPrompt?: string): Promise<void> {
     const prompt = (rawPrompt ?? inputValue).trim();
@@ -144,7 +136,6 @@ export default function AIAnalyticsFloatingChat({
   function handleReset() {
     const cleared = clearAIConversation();
     setConversation(cleared);
-    setAutoStarted(false);
     setErrorText(null);
   }
 
@@ -193,13 +184,26 @@ export default function AIAnalyticsFloatingChat({
       {/* ── Messages ── */}
       <div className="ai-float-chat__messages" role="log" aria-live="polite">
         {displayedMessages.length === 0 && !pending && (
-          <p className="ai-float-chat__empty">
-            {tr(
-              settings.language,
-              "Démarrage de l'analyse…",
-              "Starting analysis...",
-            )}
-          </p>
+          <div className="ai-float-chat__empty-state">
+            <p className="ai-float-chat__empty">
+              {tr(
+                settings.language,
+                "Lancez l'analyse quand vous voulez, puis posez vos questions de suivi.",
+                "Start the analysis when you want, then ask follow-up questions.",
+              )}
+            </p>
+            <button
+              type="button"
+              className="ai-float-chat__launch"
+              onClick={() => void submitMessage(getInitialPrompt(settings.language))}
+            >
+              {tr(
+                settings.language,
+                "Lancer l'analyse",
+                "Start analysis",
+              )}
+            </button>
+          </div>
         )}
 
         {displayedMessages.map((message) => (

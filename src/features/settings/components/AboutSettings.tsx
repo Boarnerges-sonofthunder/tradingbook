@@ -12,6 +12,14 @@ interface LocalReleaseNote {
 // Notes de version locales: source simple, sans serveur ni dépendance cloud.
 const LOCAL_RELEASE_NOTES: LocalReleaseNote[] = [
   {
+    version: "0.1.11",
+    date: "2026-05-29",
+    notes: [
+      "Chat IA Analytics ne lance plus analyse automatique a l'ouverture",
+      "Bouton dans le chat pour lancer analyse manuellement",
+    ],
+  },
+  {
     version: "0.1.10",
     date: "2026-05-29",
     notes: [
