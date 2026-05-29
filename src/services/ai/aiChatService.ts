@@ -98,6 +98,103 @@ interface OpenAIStreamChunk {
   message?: { content?: string };
 }
 
+function summarizeAIEndpoint(endpoint: string): string {
+  try {
+    const parsed = new URL(endpoint);
+    return `${parsed.protocol}//${parsed.host}${parsed.pathname}`;
+  } catch {
+    return endpoint;
+  }
+}
+
+function isLocalAIEndpoint(endpoint: string): boolean {
+  try {
+    const parsed = new URL(endpoint);
+    const hostname = parsed.hostname.toLowerCase();
+    return (
+      hostname === "127.0.0.1" ||
+      hostname === "localhost" ||
+      hostname === "::1"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function buildAIRequestHeaders(
+  endpoint: string,
+  wantsStreaming: boolean,
+): Headers {
+  const headers = new Headers({
+    "Content-Type": "application/json",
+    Accept: wantsStreaming
+      ? "text/event-stream, application/x-ndjson, application/json"
+      : "application/json",
+  });
+
+  if (isLocalAIEndpoint(endpoint)) {
+    // Tauri WebView origin `http://tauri.localhost` can make local Ollama
+    // reject native requests with 403. Force empty browser-origin headers.
+    headers.set("Origin", "");
+    headers.set("Referer", "");
+  }
+
+  return headers;
+}
+
+function buildAIHttpErrorMessage(
+  status: number,
+  endpoint: string,
+  responseText: string,
+): string {
+  const body = responseText.trim();
+  const bodyLower = body.toLowerCase();
+  const endpointSummary = summarizeAIEndpoint(endpoint);
+  const localEndpoint = isLocalAIEndpoint(endpoint);
+
+  if (status === 401) {
+    return localEndpoint
+      ? "Endpoint IA local a refusé l'authentification (401). Vérifiez proxy/modèle local."
+      : "Authentification IA refusée (401). Vérifiez la clé API et les en-têtes du fournisseur.";
+  }
+
+  if (status === 403) {
+    if (
+      bodyLower.includes("url not allowed") ||
+      bodyLower.includes("not allowed") ||
+      bodyLower.includes("scope") ||
+      bodyLower.includes("forbidden url") ||
+      bodyLower.includes("denied")
+    ) {
+      return `Endpoint IA bloqué par permissions de l'application: ${endpointSummary}`;
+    }
+
+    return localEndpoint
+      ? `Endpoint IA local a refusé la requête (403): ${endpointSummary}`
+      : `Endpoint IA a refusé la requête (403): ${endpointSummary}`;
+  }
+
+  if (status === 404) {
+    return localEndpoint
+      ? `Endpoint IA local introuvable (404): ${endpointSummary}. Vérifiez URL Ollama.`
+      : `Endpoint IA introuvable (404): ${endpointSummary}`;
+  }
+
+  if (status === 429) {
+    return "Limite du fournisseur IA atteinte (429). Réessayez plus tard.";
+  }
+
+  if (status >= 500) {
+    return `Serveur IA indisponible (${status}): ${endpointSummary}`;
+  }
+
+  if (body) {
+    return `IA indisponible (${status}): ${body.slice(0, 240)}`;
+  }
+
+  return `IA indisponible (${status})`;
+}
+
 function getContentFromJson(payload: unknown): string {
   if (
     typeof payload === "object" &&
@@ -190,12 +287,7 @@ async function callAIModel(
     const wantsStreaming = typeof onToken === "function";
     const response = await fetch(endpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: wantsStreaming
-          ? "text/event-stream, application/x-ndjson, application/json"
-          : "application/json",
-      },
+      headers: buildAIRequestHeaders(endpoint, wantsStreaming),
       body: JSON.stringify({
         model,
         stream: wantsStreaming,
@@ -206,7 +298,16 @@ async function callAIModel(
     });
 
     if (!response.ok) {
-      throw new Error(`IA indisponible (${response.status})`);
+      const responseText = await response.text().catch(() => "");
+      logger.warn("Requete IA refusee", {
+        endpoint: summarizeAIEndpoint(endpoint),
+        model,
+        status: response.status,
+        body: responseText.slice(0, 240),
+      });
+      throw new Error(
+        buildAIHttpErrorMessage(response.status, endpoint, responseText),
+      );
     }
 
     const contentType = response.headers.get("content-type") ?? "";
@@ -236,6 +337,11 @@ async function callAIModel(
     window.clearTimeout(timeoutId);
   }
 }
+
+export const __aiChatServiceTestUtils = {
+  buildAIRequestHeaders,
+  isLocalAIEndpoint,
+};
 
 export async function askAIAnalytics(
   request: AIChatRequest,
