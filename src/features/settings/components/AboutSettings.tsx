@@ -12,12 +12,12 @@ interface LocalReleaseNote {
 // Notes de version locales: source simple, sans serveur ni dépendance cloud.
 const LOCAL_RELEASE_NOTES: LocalReleaseNote[] = [
   {
-    version: "0.1.0",
-    date: "2026-05-25",
+    version: "0.1.2",
+    date: "2026-05-28",
     notes: [
-      "Base locale-first stable (Tauri + React + SQLite)",
-      "Backups locaux ZIP/.db et restauration",
-      "Préférences Settings et section MT5",
+      "Auto-update GitHub Releases activé",
+      "Brouillons de notes conservés lors du changement de page",
+      "Version application et installateurs synchronisées",
     ],
   },
 ];
@@ -116,7 +116,7 @@ export default function AboutSettings() {
       </div>
       <div className="settings-list-item">
         <span>Auto-update cloud</span>
-        <span className="badge badge-neutral">optionnel (désactivé)</span>
+        <span className="badge badge-neutral">GitHub Releases (activé)</span>
       </div>
       <p className="settings-note">
         TradingBook fonctionne en local : SQLite, fichiers, backups et logs

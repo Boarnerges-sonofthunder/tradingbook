@@ -137,7 +137,9 @@ export default function TradeNotesSection({ tradeId }: TradeNotesSectionProps) {
       setNewContent("");
 
       if (typeof window !== "undefined") {
-        window.localStorage.removeItem(`${NEW_NOTE_DRAFT_KEY_PREFIX}${tradeId}`);
+        window.localStorage.removeItem(
+          `${NEW_NOTE_DRAFT_KEY_PREFIX}${tradeId}`,
+        );
       }
 
       notify.success("Note ajoutée");
