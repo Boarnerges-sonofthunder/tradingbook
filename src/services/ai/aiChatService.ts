@@ -29,9 +29,24 @@ function getErrorMessage(error: unknown): string {
     );
   };
 
+  // Détecte une erreur réseau (Ollama non démarré, port fermé, etc.)
+  const isNetworkError = (message: string): boolean => {
+    const normalized = message.toLowerCase();
+    return (
+      normalized === "failed to fetch" ||
+      normalized.includes("networkerror") ||
+      normalized.includes("network error") ||
+      normalized.includes("econnrefused") ||
+      normalized.includes("connection refused")
+    );
+  };
+
   if (error instanceof Error && error.message.trim()) {
     if (error.name === "AbortError" || isAbortLikeMessage(error.message)) {
       return "Flux IA interrompu (timeout/stream). Augmentez timeout IA (ex: 60000) ou désactivez streaming.";
+    }
+    if (isNetworkError(error.message)) {
+      return "Ollama n'est pas démarré ou inaccessible. Lancez Ollama, vérifiez l'endpoint dans Paramètres IA, puis relancez.";
     }
     return error.message;
   }
@@ -48,6 +63,9 @@ function getErrorMessage(error: unknown): string {
       const message = (error as { message: string }).message.trim();
       if (isAbortLikeMessage(message)) {
         return "Flux IA interrompu (timeout/stream). Augmentez timeout IA (ex: 60000) ou désactivez streaming.";
+      }
+      if (isNetworkError(message)) {
+        return "Ollama n'est pas démarré ou inaccessible. Lancez Ollama, vérifiez l'endpoint dans Paramètres IA, puis relancez.";
       }
       if (message) return message;
     }
@@ -321,7 +339,7 @@ export async function askAIAnalytics(
 
     const assistantMessage = createAIMessage(
       "assistant",
-      `Erreur IA: ${message}. Vous pouvez relancer après vérification du serveur local Ollama.`,
+      `Erreur IA: ${message}`,
       true,
     );
 
