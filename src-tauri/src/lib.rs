@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use tauri_plugin_sql::{Migration, MigrationKind};
 
 // ============================================================
@@ -176,6 +177,63 @@ fn get_migrations() -> Vec<Migration> {
     ]
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+struct LocalAIMessage {
+    role: String,
+    content: String,
+}
+
+#[derive(Debug, Serialize)]
+struct LocalAIHttpResponse {
+    status: u16,
+    content_type: Option<String>,
+    body: String,
+}
+
+#[tauri::command]
+async fn fetch_local_ai_completion(
+    endpoint: String,
+    model: String,
+    messages: Vec<LocalAIMessage>,
+    timeout_ms: u64,
+) -> Result<LocalAIHttpResponse, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_millis(timeout_ms))
+        .build()
+        .map_err(|err| format!("Impossible d'initialiser client HTTP IA local: {err}"))?;
+
+    let response = client
+        .post(endpoint)
+        .header(reqwest::header::CONTENT_TYPE, "application/json")
+        .header(reqwest::header::ACCEPT, "application/json")
+        .json(&serde_json::json!({
+            "model": model,
+            "stream": false,
+            "temperature": 0.2,
+            "messages": messages,
+        }))
+        .send()
+        .await
+        .map_err(|err| format!("Requete IA locale echouee: {err}"))?;
+
+    let status = response.status().as_u16();
+    let content_type = response
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .map(str::to_owned);
+    let body = response
+        .text()
+        .await
+        .map_err(|err| format!("Lecture reponse IA locale impossible: {err}"))?;
+
+    Ok(LocalAIHttpResponse {
+        status,
+        content_type,
+        body,
+    })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -189,6 +247,7 @@ pub fn run() {
                 .add_migrations("sqlite:tradingbook.db", get_migrations())
                 .build(),
         )
+        .invoke_handler(tauri::generate_handler![fetch_local_ai_completion])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

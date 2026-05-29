@@ -1,4 +1,5 @@
 import type { AIChatRequest, AIChatResponse } from "../../types/ai";
+import { invoke } from "@tauri-apps/api/core";
 import { fetch } from "@tauri-apps/plugin-http";
 import { createLogger } from "../logging";
 import { exportAnalyticsForAI } from "./aiExportService";
@@ -96,6 +97,12 @@ interface OpenAIStreamChunk {
     message?: { content?: string };
   }>;
   message?: { content?: string };
+}
+
+interface LocalAIHttpResponse {
+  status: number;
+  content_type?: string | null;
+  body: string;
 }
 
 function summarizeAIEndpoint(endpoint: string): string {
@@ -280,6 +287,55 @@ async function callAIModel(
   timeoutMs: number,
   onToken?: (token: string) => void,
 ): Promise<string> {
+  if (isLocalAIEndpoint(endpoint)) {
+    const localResponse = await invoke<LocalAIHttpResponse>(
+      "fetch_local_ai_completion",
+      {
+        endpoint,
+        model,
+        messages,
+        timeoutMs,
+      },
+    );
+
+    if (localResponse.status < 200 || localResponse.status >= 300) {
+      logger.warn("Requete IA locale refusee", {
+        endpoint: summarizeAIEndpoint(endpoint),
+        model,
+        status: localResponse.status,
+        body: localResponse.body.slice(0, 240),
+      });
+      throw new Error(
+        buildAIHttpErrorMessage(
+          localResponse.status,
+          endpoint,
+          localResponse.body,
+        ),
+      );
+    }
+
+    let content = "";
+    const contentType = localResponse.content_type ?? "";
+
+    if (contentType.includes("application/json")) {
+      try {
+        content = getContentFromJson(JSON.parse(localResponse.body));
+      } catch {
+        content = localResponse.body;
+      }
+    } else {
+      content = localResponse.body;
+    }
+
+    if (onToken && content) {
+      for (const token of content.split(/(\s+)/)) {
+        if (token) onToken(token);
+      }
+    }
+
+    return content;
+  }
+
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
 
