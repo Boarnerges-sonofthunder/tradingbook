@@ -5240,7 +5240,7 @@ dependencies = [
 
 [[package]]
 name = "tradingbook"
-version = "0.1.3"
+version = "0.1.5"
 dependencies = [
  "log",
  "serde_json",

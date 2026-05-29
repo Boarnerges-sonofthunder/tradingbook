@@ -45,6 +45,41 @@
           "name": "py",
           "cmd": "py",
           "args": true
+        },
+        {
+          "name": "python313_local",
+          "cmd": "$LOCALDATA/Programs/Python/Python313/python.exe",
+          "args": true
+        },
+        {
+          "name": "python312_local",
+          "cmd": "$LOCALDATA/Programs/Python/Python312/python.exe",
+          "args": true
+        },
+        {
+          "name": "python311_local",
+          "cmd": "$LOCALDATA/Programs/Python/Python311/python.exe",
+          "args": true
+        },
+        {
+          "name": "python310_local",
+          "cmd": "$LOCALDATA/Programs/Python/Python310/python.exe",
+          "args": true
+        },
+        {
+          "name": "python39_local",
+          "cmd": "$LOCALDATA/Programs/Python/Python39/python.exe",
+          "args": true
+        },
+        {
+          "name": "python38_local",
+          "cmd": "$LOCALDATA/Programs/Python/Python38/python.exe",
+          "args": true
+        },
+        {
+          "name": "python_windowsapps",
+          "cmd": "$LOCALDATA/Microsoft/WindowsApps/python.exe",
+          "args": true
         }
       ]
     },
@@ -64,6 +99,41 @@
         {
           "name": "py",
           "cmd": "py",
+          "args": true
+        },
+        {
+          "name": "python313_local",
+          "cmd": "$LOCALDATA/Programs/Python/Python313/python.exe",
+          "args": true
+        },
+        {
+          "name": "python312_local",
+          "cmd": "$LOCALDATA/Programs/Python/Python312/python.exe",
+          "args": true
+        },
+        {
+          "name": "python311_local",
+          "cmd": "$LOCALDATA/Programs/Python/Python311/python.exe",
+          "args": true
+        },
+        {
+          "name": "python310_local",
+          "cmd": "$LOCALDATA/Programs/Python/Python310/python.exe",
+          "args": true
+        },
+        {
+          "name": "python39_local",
+          "cmd": "$LOCALDATA/Programs/Python/Python39/python.exe",
+          "args": true
+        },
+        {
+          "name": "python38_local",
+          "cmd": "$LOCALDATA/Programs/Python/Python38/python.exe",
+          "args": true
+        },
+        {
+          "name": "python_windowsapps",
+          "cmd": "$LOCALDATA/Microsoft/WindowsApps/python.exe",
           "args": true
         }
       ]

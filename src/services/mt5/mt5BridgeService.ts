@@ -33,6 +33,11 @@ import { Command } from "@tauri-apps/plugin-shell";
 import { resourceDir, join } from "@tauri-apps/api/path";
 import { createLogger } from "../logging";
 import { buildMT5ResultError } from "./mt5ErrorService";
+import {
+  getMT5PythonCommandOrder,
+  isMT5PythonCommandNotFoundError,
+  type MT5PythonCommandName,
+} from "./mt5PythonShell";
 import type { MT5BridgeCheckResult, MT5CheckErrorCode } from "../../types/mt5";
 
 const logger = createLogger("mt5-bridge");
@@ -48,7 +53,7 @@ const BRIDGE_TIMEOUT_MS = 30_000;
 // Cache runtime pour eviter appels Tauri repetes a chaque verification MT5.
 let cachedScriptPathPromise: Promise<string> | null = null;
 // 'py' = Windows Python Launcher (vrai exécutable, pas un alias Microsoft Store)
-let preferredPythonCommand: "python" | "python3" | "py" | null = null;
+let preferredPythonCommand: MT5PythonCommandName | null = null;
 
 // ─── Helpers ───────────────────────────────────────────────
 
@@ -118,7 +123,7 @@ function buildError(
  * @throws Si une erreur non liée à "commande introuvable" survient
  */
 async function tryRunPython(
-  cmdName: "python" | "python3" | "py",
+  cmdName: MT5PythonCommandName,
   scriptPath: string,
 ): Promise<{ stdout: string; stderr: string; code: number | null } | null> {
   try {
@@ -131,15 +136,7 @@ async function tryRunPython(
     };
   } catch (err) {
     // Détecter "commande introuvable" pour déclencher le fallback python3
-    const msg = String(err).toLowerCase();
-    const isNotFound =
-      msg.includes("not found") ||
-      msg.includes("cannot find") ||
-      msg.includes("no such file") ||
-      msg.includes("os error 2") ||        // POSIX: no such file
-      msg.includes("the system cannot");   // Windows: commande introuvable
-
-    if (isNotFound) {
+    if (isMT5PythonCommandNotFoundError(err)) {
       logger.debug(`Commande "${cmdName}" introuvable, essai suivant…`);
       return null; // Signal : essayer le nom suivant
     }
@@ -249,23 +246,7 @@ export async function checkMT5Connection(): Promise<MT5BridgeCheckResult> {
   let rawOutput: { stdout: string; stderr: string; code: number | null } | null = null;
   let lastError: unknown = null;
 
-  const commandOrder =
-    preferredPythonCommand === null
-      // Ordre : python → python3 → py (Windows Python Launcher, fallback fiable sur Windows)
-      ? (["python", "python3", "py"] as const)
-      : ([
-          preferredPythonCommand,
-          preferredPythonCommand === "python"
-            ? "python3"
-            : preferredPythonCommand === "python3"
-              ? "py"
-              : "python",
-          preferredPythonCommand === "python"
-            ? "py"
-            : preferredPythonCommand === "python3"
-              ? "python"
-              : "python3",
-        ] as const);
+  const commandOrder = getMT5PythonCommandOrder(preferredPythonCommand);
 
   for (const cmdName of commandOrder) {
     try {

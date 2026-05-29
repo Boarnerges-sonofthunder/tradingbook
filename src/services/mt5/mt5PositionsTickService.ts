@@ -9,12 +9,18 @@
 import { Command, type Child } from "@tauri-apps/plugin-shell";
 import { join, resourceDir } from "@tauri-apps/api/path";
 import { createLogger } from "../logging";
+import {
+  getMT5PythonCommandOrder,
+  isMT5PythonCommandNotFoundError,
+  type MT5PythonCommandName,
+} from "./mt5PythonShell";
 import type { MT5PositionsResult } from "../../types/mt5";
 
 const logger = createLogger("mt5-positions-tick");
 
 const BRIDGE_SCRIPT_NAME = "mt5_bridge.py";
 let cachedScriptPathPromise: Promise<string> | null = null;
+let preferredPythonCommand: MT5PythonCommandName | null = null;
 
 export interface MT5PositionsTickEvent extends MT5PositionsResult {
   streamEvent?: string;
@@ -50,17 +56,6 @@ async function resolveScriptPath(): Promise<string> {
   return cachedScriptPathPromise;
 }
 
-function isCommandNotFoundError(error: unknown): boolean {
-  const msg = String(error).toLowerCase();
-  return (
-    msg.includes("not found") ||
-    msg.includes("cannot find") ||
-    msg.includes("no such file") ||
-    msg.includes("os error 2") ||
-    msg.includes("the system cannot")
-  );
-}
-
 function parseTickEventLine(line: string): MT5PositionsTickEvent | null {
   const raw = line.trim();
   if (!raw) return null;
@@ -90,7 +85,7 @@ function parseTickEventLine(line: string): MT5PositionsTickEvent | null {
 }
 
 async function trySpawnStream(
-  commandName: "python" | "python3",
+  commandName: MT5PythonCommandName,
   args: string[],
   options: StartMT5PositionsTickStreamOptions,
 ): Promise<MT5PositionsTickStreamController | null> {
@@ -148,7 +143,7 @@ async function trySpawnStream(
     command.stdout.removeAllListeners();
     command.stderr.removeAllListeners();
 
-    if (isCommandNotFoundError(err)) {
+    if (isMT5PythonCommandNotFoundError(err)) {
       logger.debug(`Commande ${commandName} introuvable pour stream tick.`);
       return null;
     }
@@ -193,10 +188,11 @@ export async function startMT5PositionsTickStream(
     String(normalizedPollMs),
   ];
 
-  const commandOrder = ["python", "python3"] as const;
+  const commandOrder = getMT5PythonCommandOrder(preferredPythonCommand);
   for (const commandName of commandOrder) {
     const controller = await trySpawnStream(commandName, args, options);
     if (controller !== null) {
+      preferredPythonCommand = commandName;
       return controller;
     }
   }

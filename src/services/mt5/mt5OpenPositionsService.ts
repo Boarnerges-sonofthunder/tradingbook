@@ -31,6 +31,11 @@ import { Command } from "@tauri-apps/plugin-shell";
 import { resourceDir, join } from "@tauri-apps/api/path";
 import { createLogger } from "../logging";
 import { buildMT5ResultError } from "./mt5ErrorService";
+import {
+  getMT5PythonCommandOrder,
+  isMT5PythonCommandNotFoundError,
+  type MT5PythonCommandName,
+} from "./mt5PythonShell";
 import type { MT5PositionsResult, MT5CheckErrorCode } from "../../types/mt5";
 
 const logger = createLogger("mt5-positions");
@@ -44,7 +49,7 @@ const POSITIONS_TIMEOUT_MS = 15_000;
 
 // Cache runtime pour limiter appels resourceDir/join + fallback python repetes.
 let cachedScriptPathPromise: Promise<string> | null = null;
-let preferredPythonCommand: "python" | "python3" | null = null;
+let preferredPythonCommand: MT5PythonCommandName | null = null;
 
 // ─── Helpers internes ──────────────────────────────────────
 
@@ -94,7 +99,7 @@ function buildPositionsError(
  * Retourne null si la commande n'est pas dans le PATH (signal de fallback).
  */
 async function tryRunPythonWithArgs(
-  cmdName: "python" | "python3",
+  cmdName: MT5PythonCommandName,
   args: string[],
 ): Promise<{ stdout: string; stderr: string; code: number | null } | null> {
   try {
@@ -102,15 +107,7 @@ async function tryRunPythonWithArgs(
     const output = await command.execute();
     return { stdout: output.stdout, stderr: output.stderr, code: output.code };
   } catch (err) {
-    const msg = String(err).toLowerCase();
-    const isNotFound =
-      msg.includes("not found") ||
-      msg.includes("cannot find") ||
-      msg.includes("no such file") ||
-      msg.includes("os error 2") ||
-      msg.includes("the system cannot");
-
-    if (isNotFound) {
+    if (isMT5PythonCommandNotFoundError(err)) {
       logger.debug(`Commande "${cmdName}" introuvable, essai suivant…`);
       return null;
     }
@@ -216,13 +213,7 @@ export async function fetchMT5Positions(): Promise<MT5PositionsResult> {
 
   const executionPromise = (async (): Promise<MT5PositionsResult> => {
     // ── Essai python (Windows) ─────────────────────────────────────────
-    const commandOrder =
-      preferredPythonCommand === null
-        ? (["python", "python3"] as const)
-        : ([
-            preferredPythonCommand,
-            preferredPythonCommand === "python" ? "python3" : "python",
-          ] as const);
+    const commandOrder = getMT5PythonCommandOrder(preferredPythonCommand);
 
     let output: { stdout: string; stderr: string; code: number | null } | null = null;
 
