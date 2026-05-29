@@ -19,6 +19,10 @@ export interface AIAnalyticsSummary {
 
 export interface AIAnalyticsExport {
   generatedAt: string;
+  context?: {
+    scopeLabel: string | null;
+    filters: AIAnalyticsFilters;
+  };
   analytics: AIAnalyticsSummary;
   pnl: {
     totalNetPnl: number;
@@ -89,6 +93,8 @@ export interface AIMemoryFact {
   id: string;
   content: string;
   source: "user_preference" | "user_goal" | "user_rule" | "user_context";
+  scopeKey?: string | null;
+  scopeLabel?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -96,6 +102,8 @@ export interface AIMemoryFact {
 export interface AIMemorySummary {
   id: string;
   content: string;
+  scopeKey?: string | null;
+  scopeLabel?: string | null;
   createdAt: string;
 }
 
@@ -103,6 +111,19 @@ export interface AIMemoryState {
   facts: AIMemoryFact[];
   summaries: AIMemorySummary[];
   updatedAt: string;
+}
+
+export interface AIMemoryScope {
+  key: string;
+  label: string;
+}
+
+export interface AIAnalyticsFilters {
+  symbol?: string;
+  strategyId?: number | null;
+  broker?: string;
+  accountId?: string;
+  tradingAccountId?: number | null;
 }
 
 export interface AIInsightCard {
@@ -116,6 +137,8 @@ export interface AIInsightCard {
 export interface AIChatRequest {
   userMessage: string;
   conversation: AIConversationState;
+  analyticsFilters?: AIAnalyticsFilters;
+  memoryScope?: AIMemoryScope | null;
   endpoint?: string;
   model?: string;
   timeoutMs?: number;

@@ -1,5 +1,10 @@
 import { exists, readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
-import type { AIMemoryFact, AIMemoryState, AIMemorySummary } from "../../types/ai";
+import type {
+  AIMemoryFact,
+  AIMemoryScope,
+  AIMemoryState,
+  AIMemorySummary,
+} from "../../types/ai";
 import { ensureAISandboxFolders, getAIMemoryFilePath } from "./aiSandboxService";
 
 const MAX_MEMORY_FACTS = 20;
@@ -28,21 +33,29 @@ function emptyMemoryState(): AIMemoryState {
 function buildMemoryFact(
   content: string,
   source: AIMemoryFact["source"],
+  scope?: AIMemoryScope | null,
 ): AIMemoryFact {
   const timestamp = nowIso();
   return {
     id: createMemoryId("fact"),
     content,
     source,
+    scopeKey: scope?.key ?? null,
+    scopeLabel: scope?.label ?? null,
     createdAt: timestamp,
     updatedAt: timestamp,
   };
 }
 
-function buildMemorySummary(content: string): AIMemorySummary {
+function buildMemorySummary(
+  content: string,
+  scope?: AIMemoryScope | null,
+): AIMemorySummary {
   return {
     id: createMemoryId("summary"),
     content,
+    scopeKey: scope?.key ?? null,
+    scopeLabel: scope?.label ?? null,
     createdAt: nowIso(),
   };
 }
@@ -119,8 +132,20 @@ export async function loadAIMemoryState(): Promise<AIMemoryState> {
     const raw = await readTextFile(path);
     const parsed = JSON.parse(raw) as Partial<AIMemoryState>;
     return {
-      facts: Array.isArray(parsed.facts) ? parsed.facts : [],
-      summaries: Array.isArray(parsed.summaries) ? parsed.summaries : [],
+      facts: Array.isArray(parsed.facts)
+        ? parsed.facts.map((fact) => ({
+            ...fact,
+            scopeKey: fact.scopeKey ?? null,
+            scopeLabel: fact.scopeLabel ?? null,
+          }))
+        : [],
+      summaries: Array.isArray(parsed.summaries)
+        ? parsed.summaries.map((summary) => ({
+            ...summary,
+            scopeKey: summary.scopeKey ?? null,
+            scopeLabel: summary.scopeLabel ?? null,
+          }))
+        : [],
       updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : nowIso(),
     };
   } catch {
@@ -150,6 +175,7 @@ export async function saveAIMemoryState(memory: AIMemoryState): Promise<void> {
 export async function updateAIMemoryFromInteraction(entry: {
   userMessage: string;
   assistantMessage: string;
+  scope?: AIMemoryScope | null;
 }): Promise<AIMemoryState> {
   const current = await loadAIMemoryState();
   const nextFacts = [...current.facts];
@@ -157,14 +183,20 @@ export async function updateAIMemoryFromInteraction(entry: {
 
   if (memoryFact) {
     const existing = nextFacts.find(
-      (fact) => fact.content.toLowerCase() === memoryFact.content.toLowerCase(),
+      (fact) =>
+        fact.content.toLowerCase() === memoryFact.content.toLowerCase() &&
+        (fact.scopeKey ?? null) === (entry.scope?.key ?? null),
     );
 
     if (existing) {
       existing.updatedAt = nowIso();
       existing.source = memoryFact.source;
+      existing.scopeKey = entry.scope?.key ?? null;
+      existing.scopeLabel = entry.scope?.label ?? null;
     } else {
-      nextFacts.unshift(buildMemoryFact(memoryFact.content, memoryFact.source));
+      nextFacts.unshift(
+        buildMemoryFact(memoryFact.content, memoryFact.source, entry.scope),
+      );
     }
   }
 
@@ -175,7 +207,7 @@ export async function updateAIMemoryFromInteraction(entry: {
   const nextSummaries = [...current.summaries];
 
   if (summaryText) {
-    nextSummaries.unshift(buildMemorySummary(summaryText));
+    nextSummaries.unshift(buildMemorySummary(summaryText, entry.scope));
   }
 
   const nextState: AIMemoryState = {
@@ -194,7 +226,24 @@ export async function clearAIMemoryState(): Promise<AIMemoryState> {
   return empty;
 }
 
+export function buildScopedAIMemoryState(
+  memory: AIMemoryState,
+  scope?: AIMemoryScope | null,
+): AIMemoryState {
+  if (!scope) return memory;
+
+  const isVisible = (scopeKey?: string | null) =>
+    scopeKey == null || scopeKey === scope.key;
+
+  return {
+    facts: memory.facts.filter((fact) => isVisible(fact.scopeKey)),
+    summaries: memory.summaries.filter((summary) => isVisible(summary.scopeKey)),
+    updatedAt: memory.updatedAt,
+  };
+}
+
 export const __aiMemoryServiceTestUtils = {
   extractPersistentMemoryFact,
   buildInteractionMemorySummary,
+  buildScopedAIMemoryState,
 };

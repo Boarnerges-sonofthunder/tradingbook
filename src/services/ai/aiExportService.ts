@@ -18,7 +18,7 @@ import {
 import {
   findRecentTradeMistakes,
 } from "../../repositories/mistakesRepository";
-import type { AIAnalyticsExport } from "../../types/ai";
+import type { AIAnalyticsExport, AIAnalyticsFilters } from "../../types/ai";
 import {
   AI_RETENTION_DAYS,
   AI_SANDBOX_LIMITATIONS,
@@ -43,7 +43,10 @@ function buildVersionedFilename(date: Date): string {
   return `analytics-${yyyy}${mm}${dd}-${hh}${min}${sec}.json`;
 }
 
-export async function exportAnalyticsForAI(): Promise<AIExportResult> {
+export async function exportAnalyticsForAI(
+  filters: AIAnalyticsFilters = {},
+  scopeLabel: string | null = null,
+): Promise<AIExportResult> {
   await ensureAISandboxFolders();
   await pruneAIFiles(AI_RETENTION_DAYS);
 
@@ -62,16 +65,16 @@ export async function exportAnalyticsForAI(): Promise<AIExportResult> {
     tradeNotes,
     tradeMistakes,
   ] = await Promise.all([
-    getPnLStats(),
-    getDrawdownStats(),
-    getWinRateStats(),
-    getRiskRewardStats(),
-    getProfitFactorStats(),
-    getHabitDetectionStats(),
-    getEmotionStats({ status: "closed" }),
-    getStrategyStats({ status: "closed" }),
-    getSessionStats({ status: "closed" }),
-    getSymbolStats(),
+    getPnLStats(filters),
+    getDrawdownStats(filters),
+    getWinRateStats(filters),
+    getRiskRewardStats(filters),
+    getProfitFactorStats(filters),
+    getHabitDetectionStats({ ...filters, status: "closed" }),
+    getEmotionStats({ ...filters, status: "closed" }),
+    getStrategyStats({ ...filters, status: "closed" }),
+    getSessionStats({ ...filters, status: "closed" }),
+    getSymbolStats(filters),
     getMistakes(),
     findRecentNotesWithTradeContext(30),
     findRecentTradeMistakes(30),
@@ -81,6 +84,10 @@ export async function exportAnalyticsForAI(): Promise<AIExportResult> {
 
   const data: AIAnalyticsExport = {
     generatedAt: new Date().toISOString(),
+    context: {
+      scopeLabel,
+      filters,
+    },
     analytics: {
       winRate: winRate.stats?.winRate ?? 0,
       profitFactor: profitFactor.stats?.profitFactor ?? null,

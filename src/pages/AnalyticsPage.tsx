@@ -89,6 +89,7 @@ import type {
   TradingAccount,
   Broker,
 } from "../types";
+import type { AIAnalyticsFilters, AIMemoryScope } from "../types/ai";
 
 const PerformanceChart = lazy(
   () => import("../features/analytics/components/PerformanceChart"),
@@ -288,7 +289,7 @@ export default function AnalyticsPage() {
   );
 
   const loadAll = useCallback(async () => {
-    const analyticsFilters = selectedAccount
+    const analyticsFilters: AIAnalyticsFilters = selectedAccount
       ? {
           tradingAccountId: selectedAccount.id,
           accountId: selectedAccount.accountNumber,
@@ -346,7 +347,12 @@ export default function AnalyticsPage() {
       });
 
       try {
-        const exported = await exportAnalyticsForAI();
+        const scopeLabel = selectedAccount
+          ? `Compte ${selectedAccount.name}`
+          : selectedBroker
+            ? `Broker ${selectedBroker.name}`
+            : null;
+        const exported = await exportAnalyticsForAI(analyticsFilters, scopeLabel);
         setAiInsights(buildAIInsights(exported.data));
       } catch {
         setAiInsights([]);
@@ -358,6 +364,18 @@ export default function AnalyticsPage() {
       setLoading(false);
     }
   }, [selectedAccount, selectedBroker]);
+
+  const aiMemoryScope: AIMemoryScope | null = selectedAccount
+    ? {
+        key: `account:${selectedAccount.id}`,
+        label: `Compte ${selectedAccount.name}`,
+      }
+    : selectedBroker
+      ? {
+          key: `broker:${selectedBroker.name.toLowerCase()}`,
+          label: `Broker ${selectedBroker.name}`,
+        }
+      : null;
 
   const handleRefresh = useCallback(() => {
     void loadAll();
@@ -560,6 +578,18 @@ export default function AnalyticsPage() {
       <AIAnalyticsFloatingChat
         isOpen={aiChatOpen}
         onClose={() => setAiChatOpen(false)}
+        analyticsFilters={
+          selectedAccount
+            ? {
+                tradingAccountId: selectedAccount.id,
+                accountId: selectedAccount.accountNumber,
+                broker: selectedBroker?.name ?? selectedAccount.broker,
+              }
+            : selectedBroker
+              ? { broker: selectedBroker.name }
+              : undefined
+        }
+        memoryScope={aiMemoryScope}
       />
 
       <div

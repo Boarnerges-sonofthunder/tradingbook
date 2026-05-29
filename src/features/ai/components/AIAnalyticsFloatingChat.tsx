@@ -8,7 +8,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bot, Send, X } from "lucide-react";
-import type { AIChatMessage, AIConversationState } from "../../../types/ai";
+import type {
+  AIAnalyticsFilters,
+  AIChatMessage,
+  AIConversationState,
+  AIMemoryScope,
+} from "../../../types/ai";
 import {
   askAIAnalytics,
   clearAIConversation,
@@ -49,11 +54,15 @@ function getErrorMessage(error: unknown): string {
 interface AIAnalyticsFloatingChatProps {
   isOpen: boolean;
   onClose: () => void;
+  analyticsFilters?: AIAnalyticsFilters;
+  memoryScope?: AIMemoryScope | null;
 }
 
 export default function AIAnalyticsFloatingChat({
   isOpen,
   onClose,
+  analyticsFilters,
+  memoryScope,
 }: AIAnalyticsFloatingChatProps) {
   const [conversation, setConversation] = useState<AIConversationState>(() =>
     loadAIConversation(),
@@ -106,6 +115,8 @@ export default function AIAnalyticsFloatingChat({
       await askAIAnalytics({
         userMessage: prompt,
         conversation,
+        analyticsFilters,
+        memoryScope,
         onToken: (token) => {
           setStreamDraft((prev) => `${prev}${token}`);
         },

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { AIAnalyticsExport, AIChatMessage, AIMemoryState } from "../../types/ai";
+import type {
+  AIAnalyticsExport,
+  AIChatMessage,
+  AIMemoryState,
+} from "../../types/ai";
 import {
   buildConversationForModel,
   buildAISystemPrompt,
@@ -38,14 +42,14 @@ function buildExportStub(): AIAnalyticsExport {
       pctWithTP: 75,
       profitFactor: 1.8,
     },
-    habits: ["Perte fréquente pendant New York afternoon"],
+    habits: ["Perte frequente pendant New York afternoon"],
     emotions: ["FOMO"],
-    errors: ["Entrée impulsive"],
+    errors: ["Entree impulsive"],
     tradeNotes: [
       {
         tradeId: 7,
         tradeSymbol: "EURUSD",
-        content: "J'ai coupé trop tôt.",
+        content: "J'ai coupe trop tot.",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
@@ -55,7 +59,7 @@ function buildExportStub(): AIAnalyticsExport {
         tradeId: 7,
         tradeSymbol: "EURUSD",
         mistakeName: "FOMO",
-        notes: "Entrée hors plan",
+        notes: "Entree hors plan",
         createdAt: new Date().toISOString(),
       },
     ],
@@ -92,8 +96,10 @@ function buildMemoryStub(): AIMemoryState {
     facts: [
       {
         id: "fact-1",
-        content: "Je préfère des réponses courtes.",
+        content: "Je prefere des reponses courtes.",
         source: "user_preference",
+        scopeKey: null,
+        scopeLabel: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
@@ -101,7 +107,9 @@ function buildMemoryStub(): AIMemoryState {
     summaries: [
       {
         id: "summary-1",
-        content: "Sujet: drawdown | Réponse: attention aux entrées impulsives.",
+        content: "Sujet: drawdown | Reponse: attention aux entrees impulsives.",
+        scopeKey: null,
+        scopeLabel: null,
         createdAt: new Date().toISOString(),
       },
     ],
@@ -116,15 +124,25 @@ describe("aiPromptBuilder", () => {
     expect(prompt).toContain("Contexte analytics JSON:");
     expect(prompt).toContain("Limitations sandbox:");
     expect(prompt).toContain("Breakout");
-    expect(prompt).toContain("Tu dois aussi prendre en compte les notes normales de trade");
+    expect(prompt).toContain(
+      "Tu dois aussi prendre en compte les notes normales de trade",
+    );
     expect(prompt).toContain("tradeNotes");
     expect(prompt).toContain("tradeMistakes");
-    expect(prompt).toContain("Mémoire locale utilisateur:");
-    expect(prompt).toContain("Je préfère des réponses courtes.");
+    expect(prompt).toContain("Je prefere des reponses courtes.");
+  });
+
+  it("injects active memory scope in system prompt", () => {
+    const prompt = buildAISystemPrompt(buildExportStub(), buildMemoryStub(), {
+      key: "symbol:EURUSD",
+      label: "Symbole EURUSD",
+    });
+
+    expect(prompt).toContain("Symbole EURUSD");
   });
 
   it("sanitizes forbidden trading instructions", () => {
-    const sanitized = sanitizeAIOutput("Achète maintenant EURUSD");
+    const sanitized = sanitizeAIOutput("Achete maintenant EURUSD");
 
     expect(sanitized).toContain("Je ne peux pas fournir de signal d'achat/vente");
   });
@@ -135,17 +153,22 @@ describe("aiPromptBuilder", () => {
   });
 
   it("limits history to 10 latest messages", () => {
-    const history: AIChatMessage[] = Array.from({ length: 12 }).map((_, idx) => ({
-      id: `m-${idx}`,
-      role: idx % 2 === 0 ? "user" : "assistant",
-      content: `c-${idx}`,
-      createdAt: new Date().toISOString(),
-    }));
+    const history: AIChatMessage[] = Array.from({ length: 12 }).map(
+      (_, idx) => ({
+        id: `m-${idx}`,
+        role: idx % 2 === 0 ? "user" : "assistant",
+        content: `c-${idx}`,
+        createdAt: new Date().toISOString(),
+      }),
+    );
 
     const messages = buildConversationForModel("system", history, "question");
 
     expect(messages[0]).toEqual({ role: "system", content: "system" });
-    expect(messages[messages.length - 1]).toEqual({ role: "user", content: "question" });
+    expect(messages[messages.length - 1]).toEqual({
+      role: "user",
+      content: "question",
+    });
     expect(messages.length).toBe(12);
     expect(messages[1].content).toBe("c-2");
     expect(messages[10].content).toBe("c-11");

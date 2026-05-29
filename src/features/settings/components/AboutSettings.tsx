@@ -12,6 +12,15 @@ interface LocalReleaseNote {
 // Notes de version locales: source simple, sans serveur ni dépendance cloud.
 const LOCAL_RELEASE_NOTES: LocalReleaseNote[] = [
   {
+    version: "0.1.10",
+    date: "2026-05-29",
+    notes: [
+      "Memoire IA locale editable depuis Parametres > IA",
+      "Memoire IA scopee par compte, broker, symbole et strategie",
+      "Chat IA Analytics reutilise mieux contexte actif des filtres",
+    ],
+  },
+  {
     version: "0.1.2",
     date: "2026-05-28",
     notes: [

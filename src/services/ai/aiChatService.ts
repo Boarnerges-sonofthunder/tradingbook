@@ -1,4 +1,9 @@
-import type { AIChatRequest, AIChatResponse } from "../../types/ai";
+import type {
+  AIAnalyticsExport,
+  AIChatRequest,
+  AIChatResponse,
+  AIMemoryScope,
+} from "../../types/ai";
 import { invoke } from "@tauri-apps/api/core";
 import { fetch } from "@tauri-apps/plugin-http";
 import { createLogger } from "../logging";
@@ -9,6 +14,7 @@ import {
   saveAIConversation,
 } from "./aiConversationService";
 import {
+  buildScopedAIMemoryState,
   loadAIMemoryState,
   updateAIMemoryFromInteraction,
 } from "./aiMemoryService";
@@ -107,6 +113,36 @@ interface LocalAIHttpResponse {
   status: number;
   content_type?: string | null;
   body: string;
+}
+
+function deriveScopedMemoryContext(input: {
+  userMessage: string;
+  exportData: AIAnalyticsExport;
+  fallbackScope?: AIMemoryScope | null;
+}): AIMemoryScope | null {
+  const lowerMessage = input.userMessage.toLowerCase();
+
+  const matchedSymbol = input.exportData.symbols.find((item) =>
+    lowerMessage.includes(item.symbol.toLowerCase()),
+  );
+  if (matchedSymbol) {
+    return {
+      key: `symbol:${matchedSymbol.symbol.toUpperCase()}`,
+      label: `Symbole ${matchedSymbol.symbol.toUpperCase()}`,
+    };
+  }
+
+  const matchedStrategy = input.exportData.strategies.find((item) =>
+    lowerMessage.includes(item.strategyName.toLowerCase()),
+  );
+  if (matchedStrategy) {
+    return {
+      key: `strategy:${matchedStrategy.strategyName.toLowerCase()}`,
+      label: `Stratégie ${matchedStrategy.strategyName}`,
+    };
+  }
+
+  return input.fallbackScope ?? null;
 }
 
 function summarizeAIEndpoint(endpoint: string): string {
@@ -423,11 +459,22 @@ export async function askAIAnalytics(
     saveAIConversation(conversationWithUser);
 
     const { data: exportData, latestPath: exportedPath } =
-      await exportAnalyticsForAI();
+      await exportAnalyticsForAI(
+        request.analyticsFilters,
+        request.memoryScope?.label ?? null,
+      );
     latestPath = exportedPath;
 
+    const derivedScope = deriveScopedMemoryContext({
+      userMessage: request.userMessage,
+      exportData,
+      fallbackScope: request.memoryScope,
+    });
     const memory = await loadAIMemoryState().catch(() => null);
-    const systemPrompt = buildAISystemPrompt(exportData, memory);
+    const scopedMemory = memory
+      ? buildScopedAIMemoryState(memory, derivedScope)
+      : null;
+    const systemPrompt = buildAISystemPrompt(exportData, scopedMemory, derivedScope);
     const modelMessages = buildConversationForModel(
       systemPrompt,
       conversation.messages,
@@ -480,6 +527,7 @@ export async function askAIAnalytics(
     await updateAIMemoryFromInteraction({
       userMessage: userMessage.content,
       assistantMessage: assistantText,
+      scope: derivedScope,
     }).catch(() => undefined);
 
     const assistantMessage = createAIMessage("assistant", assistantText);

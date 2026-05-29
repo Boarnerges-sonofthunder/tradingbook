@@ -226,8 +226,13 @@ export type {
   AIChatMessage,
   AIAnalyticsSummary,
   AIAnalyticsExport,
+  AIAnalyticsFilters,
   AIConversationState,
   AIInsightCard,
   AIChatRequest,
   AIChatResponse,
+  AIMemoryFact,
+  AIMemoryState,
+  AIMemorySummary,
+  AIMemoryScope,
 } from "./ai";
