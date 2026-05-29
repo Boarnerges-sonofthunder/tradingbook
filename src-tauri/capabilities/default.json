@@ -33,6 +33,11 @@
           "name": "python3",
           "cmd": "python3",
           "args": true
+        },
+        {
+          "name": "py",
+          "cmd": "py",
+          "args": true
         }
       ]
     },
@@ -47,6 +52,11 @@
         {
           "name": "python3",
           "cmd": "python3",
+          "args": true
+        },
+        {
+          "name": "py",
+          "cmd": "py",
           "args": true
         }
       ]

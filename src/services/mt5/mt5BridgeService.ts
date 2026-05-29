@@ -47,7 +47,8 @@ const BRIDGE_TIMEOUT_MS = 30_000;
 
 // Cache runtime pour eviter appels Tauri repetes a chaque verification MT5.
 let cachedScriptPathPromise: Promise<string> | null = null;
-let preferredPythonCommand: "python" | "python3" | null = null;
+// 'py' = Windows Python Launcher (vrai exécutable, pas un alias Microsoft Store)
+let preferredPythonCommand: "python" | "python3" | "py" | null = null;
 
 // ─── Helpers ───────────────────────────────────────────────
 
@@ -111,13 +112,13 @@ function buildError(
  * disponible ; "python3" sert de fallback pour certaines configurations
  * (ex: Python installé via le Microsoft Store).
  *
- * @param cmdName   — nom de la commande dans le scope Tauri ("python" | "python3")
+ * @param cmdName   — nom de la commande dans le scope Tauri ("python" | "python3" | "py")
  * @param scriptPath — chemin absolu vers mt5_bridge.py
  * @returns stdout du script, ou null si la commande n'est pas trouvée
  * @throws Si une erreur non liée à "commande introuvable" survient
  */
 async function tryRunPython(
-  cmdName: "python" | "python3",
+  cmdName: "python" | "python3" | "py",
   scriptPath: string,
 ): Promise<{ stdout: string; stderr: string; code: number | null } | null> {
   try {
@@ -250,10 +251,20 @@ export async function checkMT5Connection(): Promise<MT5BridgeCheckResult> {
 
   const commandOrder =
     preferredPythonCommand === null
-      ? (["python", "python3"] as const)
+      // Ordre : python → python3 → py (Windows Python Launcher, fallback fiable sur Windows)
+      ? (["python", "python3", "py"] as const)
       : ([
           preferredPythonCommand,
-          preferredPythonCommand === "python" ? "python3" : "python",
+          preferredPythonCommand === "python"
+            ? "python3"
+            : preferredPythonCommand === "python3"
+              ? "py"
+              : "python",
+          preferredPythonCommand === "python"
+            ? "py"
+            : preferredPythonCommand === "python3"
+              ? "python"
+              : "python3",
         ] as const);
 
   for (const cmdName of commandOrder) {
@@ -261,24 +272,18 @@ export async function checkMT5Connection(): Promise<MT5BridgeCheckResult> {
       const execPromise = tryRunPython(cmdName, scriptPath);
       const result = await Promise.race([execPromise, timeoutPromise]);
 
-      if (result === null && cmdName === "python") {
-        // Timeout ou non trouvé → essayer python3
+      if (result === null) {
+        // Commande introuvable → essayer la suivante
         continue;
       }
 
-      if (result === null) {
-        // python3 aussi introuvable ou timeout
-        break;
-      }
-
       rawOutput = result;
-  preferredPythonCommand = cmdName;
+      preferredPythonCommand = cmdName;
       break;
     } catch (err) {
       lastError = err;
       logger.warn(`Erreur avec "${cmdName}" : ${String(err)}`);
-      if (cmdName === "python") continue;
-      // Échec sur python3 aussi → sortir
+      // Continuer avec la commande suivante
     }
   }
 
