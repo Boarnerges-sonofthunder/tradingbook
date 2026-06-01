@@ -8374,8 +8374,8 @@ select:focus {
 }
 
 .ai-float-chat__send {
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   align-self: flex-end;
   display: flex;
   align-items: center;
@@ -8398,10 +8398,10 @@ select:focus {
 }
 
 .ai-float-chat__send svg {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   stroke: currentColor;
-  stroke-width: 2.9;
+  stroke-width: 2.8;
 }
 
 .ai-float-chat__send:disabled {
