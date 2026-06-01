@@ -24,7 +24,7 @@ body {
   background-color: var(--color-bg-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  user-select: none; /* Comportement natif desktop */
+  user-select: text; /* Permet copier/sélectionner le contenu partout dans l'app */
 }
 
 #root {
@@ -8374,8 +8374,8 @@ select:focus {
 }
 
 .ai-float-chat__send {
-  width: 36px;
-  height: 36px;
+  width: 56px;
+  height: 56px;
   align-self: flex-end;
   display: flex;
   align-items: center;
