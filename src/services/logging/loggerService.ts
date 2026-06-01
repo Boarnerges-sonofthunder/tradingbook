@@ -21,8 +21,6 @@ export interface LogFileInfo {
   path: string;
 }
 
-const LOG_FILE_PREFIX = "tradingbook-";
-const LOG_FILE_EXTENSION = ".log";
 const CURRENT_LOG_FILENAME = "tradingbook.log";
 const LOG_RETENTION_DAYS = 30;
 const MAX_UI_LOG_LINES = 800;
@@ -40,10 +38,6 @@ function formatDate(date: Date): string {
 
 function formatTimestamp(date: Date): string {
   return `${formatDate(date)} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-}
-
-function getDailyLogFilename(date = new Date()): string {
-  return `${LOG_FILE_PREFIX}${formatDate(date)}${LOG_FILE_EXTENSION}`;
 }
 
 function parseLogDate(filename: string): string | null {
@@ -131,7 +125,7 @@ async function rotateOldLogs(): Promise<void> {
 async function appendLogLine(line: string): Promise<void> {
   await ensureAppFolder("logs");
   await rotateOldLogs();
-  await writeTextFile(await getLogFilePath(getDailyLogFilename()), line, {
+  await writeTextFile(await getLogFilePath(CURRENT_LOG_FILENAME), line, {
     append: true,
     create: true,
   });
