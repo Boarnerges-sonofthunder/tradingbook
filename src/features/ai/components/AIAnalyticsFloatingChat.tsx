@@ -195,13 +195,11 @@ export default function AIAnalyticsFloatingChat({
             <button
               type="button"
               className="ai-float-chat__launch"
-              onClick={() => void submitMessage(getInitialPrompt(settings.language))}
+              onClick={() =>
+                void submitMessage(getInitialPrompt(settings.language))
+              }
             >
-              {tr(
-                settings.language,
-                "Lancer l'analyse",
-                "Start analysis",
-              )}
+              {tr(settings.language, "Lancer l'analyse", "Start analysis")}
             </button>
           </div>
         )}
@@ -251,7 +249,7 @@ export default function AIAnalyticsFloatingChat({
           className="ai-float-chat__send"
           aria-label={tr(settings.language, "Envoyer", "Send")}
         >
-          <Send size={16} aria-hidden />
+          <Send size={20} aria-hidden />
         </button>
       </div>
     </div>
