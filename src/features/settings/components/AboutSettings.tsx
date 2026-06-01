@@ -12,6 +12,14 @@ interface LocalReleaseNote {
 // Notes de version locales: source simple, sans serveur ni dépendance cloud.
 const LOCAL_RELEASE_NOTES: LocalReleaseNote[] = [
   {
+    version: "0.1.14",
+    date: "2026-05-31",
+    notes: [
+      "Correctif Logs systeme: lecture et ecriture alignees sur tradingbook.log",
+      "Release publiee apres modification pour activer l'auto-update",
+    ],
+  },
+  {
     version: "0.1.13",
     date: "2026-05-31",
     notes: [
