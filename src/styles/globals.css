@@ -8381,11 +8381,15 @@ select:focus {
   align-items: center;
   justify-content: center;
   background: var(--color-accent);
-  border: none;
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
   color: #fff;
   cursor: pointer;
-  transition: opacity var(--transition-fast);
+  transition:
+    opacity var(--transition-fast),
+    background var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast);
   flex-shrink: 0;
 }
 
@@ -8401,7 +8405,14 @@ select:focus {
 }
 
 .ai-float-chat__send:disabled {
-  opacity: 0.4;
+  opacity: 1;
+  background: color-mix(
+    in srgb,
+    var(--color-accent) 38%,
+    var(--color-bg-secondary) 62%
+  );
+  color: color-mix(in srgb, #ffffff 85%, transparent 15%);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent 55%);
   cursor: not-allowed;
 }
 
