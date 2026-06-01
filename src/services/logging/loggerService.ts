@@ -2,7 +2,10 @@
 // loggerService - logs systeme locaux TradingBook
 // ============================================================
 // Ecrit les logs techniques dans :
-//   %LOCALAPPDATA%/com.tradingbook.app/logs/tradingbook-YYYY-MM-DD.log
+//   %LOCALAPPDATA%/com.tradingbook.app/logs/tradingbook.log
+//
+// Compatibilite conservee avec d'anciens fichiers journalises au format
+//   tradingbook-YYYY-MM-DD.log
 //
 // Ce service est la couche fichier du logging. Les composants React ne lisent
 // jamais directement le filesystem : ils passent par les helpers exportes ici.
@@ -20,6 +23,7 @@ export interface LogFileInfo {
 
 const LOG_FILE_PREFIX = "tradingbook-";
 const LOG_FILE_EXTENSION = ".log";
+const CURRENT_LOG_FILENAME = "tradingbook.log";
 const LOG_RETENTION_DAYS = 30;
 const MAX_UI_LOG_LINES = 800;
 
@@ -45,6 +49,25 @@ function getDailyLogFilename(date = new Date()): string {
 function parseLogDate(filename: string): string | null {
   const match = /^tradingbook-(\d{4}-\d{2}-\d{2})\.log$/.exec(filename);
   return match?.[1] ?? null;
+}
+
+function parseLogFileInfo(filename: string): LogFileInfo | null {
+  if (filename === CURRENT_LOG_FILENAME) {
+    return {
+      filename,
+      date: formatDate(new Date()),
+      path: "",
+    };
+  }
+
+  const date = parseLogDate(filename);
+  if (!date) return null;
+
+  return {
+    filename,
+    date,
+    path: "",
+  };
 }
 
 function serializeData(data: unknown): string {
@@ -137,11 +160,10 @@ export async function listLogFiles(): Promise<LogFileInfo[]> {
     entries
       .filter((entry) => entry.isFile)
       .map(async (entry) => {
-        const date = parseLogDate(entry.name);
-        if (!date) return null;
+        const fileInfo = parseLogFileInfo(entry.name);
+        if (!fileInfo) return null;
         return {
-          filename: entry.name,
-          date,
+          ...fileInfo,
           path: await getLogFilePath(entry.name),
         } satisfies LogFileInfo;
       }),
@@ -149,11 +171,15 @@ export async function listLogFiles(): Promise<LogFileInfo[]> {
 
   return files
     .filter((file): file is LogFileInfo => file !== null)
-    .sort((a, b) => b.date.localeCompare(a.date));
+    .sort((a, b) => {
+      if (a.filename === CURRENT_LOG_FILENAME) return -1;
+      if (b.filename === CURRENT_LOG_FILENAME) return 1;
+      return b.date.localeCompare(a.date);
+    });
 }
 
 export async function readLogFile(filename: string): Promise<string> {
-  if (!parseLogDate(filename)) {
+  if (filename !== CURRENT_LOG_FILENAME && !parseLogDate(filename)) {
     throw new Error("Nom de fichier log invalide.");
   }
 
@@ -165,5 +191,5 @@ export async function readLogFile(filename: string): Promise<string> {
 
 export async function getTodayLogFilename(): Promise<string> {
   await ensureAppFolder("logs");
-  return getDailyLogFilename();
+  return CURRENT_LOG_FILENAME;
 }
