@@ -251,7 +251,7 @@ export default function AIAnalyticsFloatingChat({
           className="ai-float-chat__send"
           aria-label={tr(settings.language, "Envoyer", "Send")}
         >
-          <Send size={14} aria-hidden />
+          <Send size={16} aria-hidden />
         </button>
       </div>
     </div>

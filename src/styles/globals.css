@@ -8393,6 +8393,13 @@ select:focus {
   opacity: 0.88;
 }
 
+.ai-float-chat__send svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2.4;
+}
+
 .ai-float-chat__send:disabled {
   opacity: 0.4;
   cursor: not-allowed;
