@@ -13,6 +13,8 @@ export interface AIAnalyticsSummary {
   profitFactor: number | null;
   drawdown: number;
   totalNetPnl: number;
+  /** Label pré-calculé: 'Gains Nets Totaux' si >= 0, 'Pertes Nettes Totales' si < 0 */
+  netPnlLabel: string;
   totalTrades: number;
   currency: string;
 }

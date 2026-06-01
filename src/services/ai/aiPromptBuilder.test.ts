@@ -18,6 +18,7 @@ function buildExportStub(): AIAnalyticsExport {
       profitFactor: 1.8,
       drawdown: -4.2,
       totalNetPnl: 1200,
+      netPnlLabel: "Gains Nets Totaux",
       totalTrades: 42,
       currency: "USD",
     },

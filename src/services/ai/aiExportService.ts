@@ -93,6 +93,8 @@ export async function exportAnalyticsForAI(
       profitFactor: profitFactor.stats?.profitFactor ?? null,
       drawdown: drawdown.stats?.maxDrawdownPct ?? 0,
       totalNetPnl: pnl.stats?.totalNetPnl ?? 0,
+      // Label pré-calculé pour guider l'IA — évite que le modèle choisisse le mauvais libellé
+      netPnlLabel: (pnl.stats?.totalNetPnl ?? 0) >= 0 ? "Gains Nets Totaux" : "Pertes Nettes Totales",
       totalTrades: pnl.stats?.totalTrades ?? 0,
       currency,
     },
