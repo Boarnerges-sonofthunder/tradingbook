@@ -25,6 +25,17 @@ export interface AIAnalyticsExport {
     scopeLabel: string | null;
     filters: AIAnalyticsFilters;
   };
+  timeContext?: {
+    totalClosedTrades: number;
+    tradesWithOpenedAt: number;
+    tradesWithClosedAt: number;
+    missingOpenedAt: number;
+    missingClosedAt: number;
+    firstOpenedAt: string | null;
+    lastOpenedAt: string | null;
+    firstClosedAt: string | null;
+    lastClosedAt: string | null;
+  };
   analytics: AIAnalyticsSummary;
   pnl: {
     totalNetPnl: number;
@@ -81,6 +92,13 @@ export interface AIAnalyticsExport {
     totalTrades: number;
     winRate: number;
     netPnl: number;
+  }>;
+  recentClosedTrades?: Array<{
+    tradeId: number;
+    symbol: string;
+    openedAt: string;
+    closedAt: string | null;
+    netPnl: number | null;
   }>;
   limitations: string[];
 }

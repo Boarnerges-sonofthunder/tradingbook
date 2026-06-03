@@ -18,6 +18,7 @@ import {
 import {
   findRecentTradeMistakes,
 } from "../../repositories/mistakesRepository";
+import { findTradesForAnalytics } from "../../repositories/tradesRepository";
 import type { AIAnalyticsExport, AIAnalyticsFilters } from "../../types/ai";
 import {
   AI_RETENTION_DAYS,
@@ -43,6 +44,23 @@ function buildVersionedFilename(date: Date): string {
   return `analytics-${yyyy}${mm}${dd}-${hh}${min}${sec}.json`;
 }
 
+function getIsoBounds(values: string[]): { first: string | null; last: string | null } {
+  if (values.length === 0) {
+    return { first: null, last: null };
+  }
+
+  let first = values[0];
+  let last = values[0];
+
+  for (let i = 1; i < values.length; i += 1) {
+    const current = values[i];
+    if (current < first) first = current;
+    if (current > last) last = current;
+  }
+
+  return { first, last };
+}
+
 export async function exportAnalyticsForAI(
   filters: AIAnalyticsFilters = {},
   scopeLabel: string | null = null,
@@ -64,6 +82,7 @@ export async function exportAnalyticsForAI(
     mistakes,
     tradeNotes,
     tradeMistakes,
+    closedTrades,
   ] = await Promise.all([
     getPnLStats(filters),
     getDrawdownStats(filters),
@@ -78,15 +97,37 @@ export async function exportAnalyticsForAI(
     getMistakes(),
     findRecentNotesWithTradeContext(30),
     findRecentTradeMistakes(30),
+    findTradesForAnalytics({ ...filters, status: "closed" }),
   ]);
 
   const currency = pnl.stats?.currency ?? "USD";
+  const openedAtValues = closedTrades
+    .map((trade) => trade.openedAt)
+    .filter((value): value is string => value.length > 0);
+  const closedAtValues = closedTrades
+    .map((trade) => trade.closedAt)
+    .filter((value): value is string => typeof value === "string" && value.length > 0);
+  const openedBounds = getIsoBounds(openedAtValues);
+  const closedBounds = getIsoBounds(closedAtValues);
 
   const data: AIAnalyticsExport = {
     generatedAt: new Date().toISOString(),
     context: {
       scopeLabel,
       filters,
+    },
+    // Contexte temporel explicite pour éviter que le modèle conclue à tort
+    // qu'aucune date de trade n'est disponible.
+    timeContext: {
+      totalClosedTrades: closedTrades.length,
+      tradesWithOpenedAt: openedAtValues.length,
+      tradesWithClosedAt: closedAtValues.length,
+      missingOpenedAt: closedTrades.length - openedAtValues.length,
+      missingClosedAt: closedTrades.length - closedAtValues.length,
+      firstOpenedAt: openedBounds.first,
+      lastOpenedAt: openedBounds.last,
+      firstClosedAt: closedBounds.first,
+      lastClosedAt: closedBounds.last,
     },
     analytics: {
       winRate: winRate.stats?.winRate ?? 0,
@@ -144,6 +185,13 @@ export async function exportAnalyticsForAI(
       totalTrades: item.totalTrades,
       winRate: item.winRate,
       netPnl: item.netPnlTotal,
+    })),
+    recentClosedTrades: closedTrades.slice(0, 40).map((trade) => ({
+      tradeId: trade.id,
+      symbol: trade.symbol,
+      openedAt: trade.openedAt,
+      closedAt: trade.closedAt,
+      netPnl: trade.netPnl,
     })),
     limitations: AI_SANDBOX_LIMITATIONS,
   };
