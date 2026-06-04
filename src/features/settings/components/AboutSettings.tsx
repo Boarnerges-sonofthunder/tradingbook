@@ -12,6 +12,14 @@ interface LocalReleaseNote {
 // Notes de version locales: source simple, sans serveur ni dépendance cloud.
 const LOCAL_RELEASE_NOTES: LocalReleaseNote[] = [
   {
+    version: "0.1.16",
+    date: "2026-06-03",
+    notes: [
+      "Default AI model switched to deepseek-r1:14b",
+      "AI prompt now carries explicit trade date context",
+    ],
+  },
+  {
     version: "0.1.14",
     date: "2026-05-31",
     notes: [
