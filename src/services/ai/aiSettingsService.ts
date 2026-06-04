@@ -9,7 +9,7 @@ export interface AIProviderSettings {
 
 export const DEFAULT_AI_PROVIDER_SETTINGS: AIProviderSettings = {
   endpoint: "http://127.0.0.1:11434/v1/chat/completions",
-  model: "qwen2.5:7b",
+  model: "deepseek-r1:14b",
   timeoutMs: 60_000,
   streamingEnabled: true,
 };
