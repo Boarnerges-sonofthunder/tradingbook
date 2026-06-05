@@ -286,14 +286,13 @@ function mapDealGroupToTrade(
   const side = primaryEntry.type as TradeSide;
   const stopLoss = findLatestPositiveDealValue(allDeals, "sl");
   const takeProfit = findLatestPositiveDealValue(allDeals, "tp");
-  const riskReward = computeRiskReward(
-    primaryEntry.price,
-    stopLoss,
-    takeProfit,
-    side,
-  );
-  const riskAmount = computeRiskDistance(primaryEntry.price, stopLoss, side);
-  const rewardAmount = computeRewardDistance(primaryEntry.price, takeProfit, side);
+  const { riskAmount, rewardAmount, riskRewardRatio } =
+    computeMt5RiskMetrics(
+      primaryEntry.price,
+      stopLoss,
+      takeProfit,
+      side,
+    );
 
   return {
     externalId: mt5ExternalId(positionId),
@@ -329,7 +328,7 @@ function mapDealGroupToTrade(
     netPnl: primaryExit !== null ? netPnl : null,
     riskAmount,
     rewardAmount,
-    riskRewardRatio: riskReward?.ratio ?? null,
+    riskRewardRatio,
   };
 }
 
@@ -352,14 +351,13 @@ export function mapPositionToTrade(
   const stopLoss = position.stopLoss > 0 ? position.stopLoss : null;
   const takeProfit = position.takeProfit > 0 ? position.takeProfit : null;
   const side = position.type as TradeSide;
-  const riskReward = computeRiskReward(
-    position.openPrice,
-    stopLoss,
-    takeProfit,
-    side,
-  );
-  const riskAmount = computeRiskDistance(position.openPrice, stopLoss, side);
-  const rewardAmount = computeRewardDistance(position.openPrice, takeProfit, side);
+  const { riskAmount, rewardAmount, riskRewardRatio } =
+    computeMt5RiskMetrics(
+      position.openPrice,
+      stopLoss,
+      takeProfit,
+      side,
+    );
 
   return {
     externalId: mt5ExternalId(position.positionId),
@@ -395,7 +393,45 @@ export function mapPositionToTrade(
     netPnl,
     riskAmount,
     rewardAmount,
-    riskRewardRatio: riskReward?.ratio ?? null,
+    riskRewardRatio,
+  };
+}
+
+function computeMt5RiskMetrics(
+  entry: number,
+  stopLoss: number | null,
+  takeProfit: number | null,
+  side: TradeSide,
+): {
+  riskAmount: number | null;
+  rewardAmount: number | null;
+  riskRewardRatio: number | null;
+} {
+  const directionalRisk = computeRiskDistance(entry, stopLoss, side);
+  // MT5 peut déplacer le SL dans la zone profit (break-even/trailing).
+  // Dans ce cas, distance SL doit rester visible dans TradingBook.
+  const fallbackAbsoluteRisk =
+    stopLoss !== null && entry > 0 ? Math.abs(entry - stopLoss) : null;
+
+  const riskAmount =
+    directionalRisk ??
+    (fallbackAbsoluteRisk !== null && fallbackAbsoluteRisk > 0
+      ? fallbackAbsoluteRisk
+      : null);
+
+  const rewardAmount = computeRewardDistance(entry, takeProfit, side);
+
+  const directionalRr = computeRiskReward(entry, stopLoss, takeProfit, side);
+  const riskRewardRatio =
+    directionalRr?.ratio ??
+    (rewardAmount !== null && riskAmount !== null && riskAmount > 0
+      ? Math.round((rewardAmount / riskAmount) * 100) / 100
+      : null);
+
+  return {
+    riskAmount,
+    rewardAmount,
+    riskRewardRatio,
   };
 }
 
