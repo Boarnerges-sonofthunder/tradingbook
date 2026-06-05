@@ -49,7 +49,10 @@ function getErrorMessage(error: unknown): string {
       normalized.includes("networkerror") ||
       normalized.includes("network error") ||
       normalized.includes("econnrefused") ||
-      normalized.includes("connection refused")
+      normalized.includes("connection refused") ||
+      normalized.includes("error sending request for url") ||
+      normalized.includes("tcp connect error") ||
+      normalized.includes("dns error")
     );
   };
 
@@ -166,6 +169,63 @@ function isLocalAIEndpoint(endpoint: string): boolean {
   } catch {
     return false;
   }
+}
+
+function isLocalTransportFailure(error: unknown): boolean {
+  const message = getErrorMessage(error).toLowerCase();
+  return (
+    message.includes("error sending request for url") ||
+    message.includes("connection refused") ||
+    message.includes("tcp connect error") ||
+    message.includes("failed to fetch") ||
+    message.includes("network error")
+  );
+}
+
+function buildLocalAICandidateEndpoints(endpoint: string): string[] {
+  const candidates = new Set<string>();
+  candidates.add(endpoint);
+
+  try {
+    const parsed = new URL(endpoint);
+    const pathname = parsed.pathname;
+    const host = parsed.host;
+    const protocol = parsed.protocol;
+
+    const add = (path: string, hostname: string): void => {
+      candidates.add(`${protocol}//${hostname}:${parsed.port || "11434"}${path}`);
+    };
+
+    if (pathname === "/v1/chat/completions") {
+      add("/api/chat", parsed.hostname);
+    } else if (pathname === "/api/chat") {
+      add("/v1/chat/completions", parsed.hostname);
+    }
+
+    if (host.startsWith("127.0.0.1")) {
+      if (pathname === "/v1/chat/completions") {
+        add("/v1/chat/completions", "localhost");
+        add("/api/chat", "localhost");
+      } else if (pathname === "/api/chat") {
+        add("/api/chat", "localhost");
+        add("/v1/chat/completions", "localhost");
+      }
+    }
+
+    if (host.startsWith("localhost")) {
+      if (pathname === "/v1/chat/completions") {
+        add("/v1/chat/completions", "127.0.0.1");
+        add("/api/chat", "127.0.0.1");
+      } else if (pathname === "/api/chat") {
+        add("/api/chat", "127.0.0.1");
+        add("/v1/chat/completions", "127.0.0.1");
+      }
+    }
+  } catch {
+    // Endpoint invalide : on garde la valeur brute initiale.
+  }
+
+  return [...candidates];
 }
 
 function buildAIRequestHeaders(
@@ -328,52 +388,78 @@ async function callAIModel(
   onToken?: (token: string) => void,
 ): Promise<string> {
   if (isLocalAIEndpoint(endpoint)) {
-    const localResponse = await invoke<LocalAIHttpResponse>(
-      "fetch_local_ai_completion",
-      {
-        endpoint,
-        model,
-        messages,
-        timeoutMs,
-      },
-    );
+    const localCandidates = buildLocalAICandidateEndpoints(endpoint);
+    let lastTransportError: unknown = null;
 
-    if (localResponse.status < 200 || localResponse.status >= 300) {
-      logger.warn("Requete IA locale refusee", {
-        endpoint: summarizeAIEndpoint(endpoint),
-        model,
-        status: localResponse.status,
-        body: localResponse.body.slice(0, 240),
-      });
+    for (const localEndpoint of localCandidates) {
+      let localResponse: LocalAIHttpResponse;
+      try {
+        localResponse = await invoke<LocalAIHttpResponse>(
+          "fetch_local_ai_completion",
+          {
+            endpoint: localEndpoint,
+            model,
+            messages,
+            timeoutMs,
+          },
+        );
+      } catch (error) {
+        if (isLocalTransportFailure(error)) {
+          lastTransportError = error;
+          logger.warn("Transport IA locale indisponible, tentative endpoint suivant", {
+            endpoint: summarizeAIEndpoint(localEndpoint),
+            model,
+          });
+          continue;
+        }
+        throw error;
+      }
+
+      if (localResponse.status < 200 || localResponse.status >= 300) {
+        logger.warn("Requete IA locale refusee", {
+          endpoint: summarizeAIEndpoint(localEndpoint),
+          model,
+          status: localResponse.status,
+          body: localResponse.body.slice(0, 240),
+        });
+        throw new Error(
+          buildAIHttpErrorMessage(
+            localResponse.status,
+            localEndpoint,
+            localResponse.body,
+          ),
+        );
+      }
+
+      let content = "";
+      const contentType = localResponse.content_type ?? "";
+
+      if (contentType.includes("application/json")) {
+        try {
+          content = getContentFromJson(JSON.parse(localResponse.body));
+        } catch {
+          content = localResponse.body;
+        }
+      } else {
+        content = localResponse.body;
+      }
+
+      if (onToken && content) {
+        for (const token of content.split(/(\s+)/)) {
+          if (token) onToken(token);
+        }
+      }
+
+      return content;
+    }
+
+    if (lastTransportError) {
       throw new Error(
-        buildAIHttpErrorMessage(
-          localResponse.status,
-          endpoint,
-          localResponse.body,
-        ),
+        "Ollama local inaccessible. Verifiez que serveur tourne sur 127.0.0.1:11434 (ou localhost:11434), puis retentez.",
       );
     }
 
-    let content = "";
-    const contentType = localResponse.content_type ?? "";
-
-    if (contentType.includes("application/json")) {
-      try {
-        content = getContentFromJson(JSON.parse(localResponse.body));
-      } catch {
-        content = localResponse.body;
-      }
-    } else {
-      content = localResponse.body;
-    }
-
-    if (onToken && content) {
-      for (const token of content.split(/(\s+)/)) {
-        if (token) onToken(token);
-      }
-    }
-
-    return content;
+    throw new Error("Aucun endpoint IA local valide.");
   }
 
   const controller = new AbortController();
@@ -437,6 +523,7 @@ async function callAIModel(
 export const __aiChatServiceTestUtils = {
   buildAIRequestHeaders,
   isLocalAIEndpoint,
+  buildLocalAICandidateEndpoints,
 };
 
 export async function askAIAnalytics(
