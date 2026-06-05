@@ -11430,3 +11430,238 @@ select:focus {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* --- Replay Calendrier (sélection trades) --------------------------------- */
+
+/* Layout deux colonnes : calendrier | detail replay */
+.replay-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: var(--spacing-md);
+  align-items: start;
+}
+
+.replay-layout__calendar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* Calendrier compact */
+.replay-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* Barre navigation mois */
+.replay-calendar__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.replay-calendar__nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.replay-calendar__nav-btn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.replay-calendar__month-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  text-align: center;
+  flex: 1;
+}
+
+/* Grille 7 colonnes */
+.replay-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+/* En-têtes Lu Ma Me… */
+.replay-calendar__day-header {
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 3px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Wrapper cellule (nécessaire pour le popover en position absolue) */
+.replay-calendar__cell-wrapper {
+  position: relative;
+}
+
+/* Cellule de jour */
+.replay-calendar__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 2px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: default;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.replay-calendar__cell--empty {
+  pointer-events: none;
+}
+
+.replay-calendar__cell--has-trades {
+  cursor: pointer;
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-border);
+}
+
+.replay-calendar__cell--has-trades:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-accent);
+}
+
+.replay-calendar__cell--selected {
+  background: color-mix(in srgb, var(--color-accent) 15%, var(--color-bg-secondary));
+  border-color: var(--color-accent);
+}
+
+.replay-calendar__cell--active {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-bg-secondary));
+}
+
+/* Numéro du jour */
+.replay-calendar__day-num {
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  line-height: 1;
+}
+
+.replay-calendar__cell--has-trades .replay-calendar__day-num {
+  color: var(--color-text-primary);
+}
+
+/* Dot badge PnL */
+.replay-calendar__dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  height: 10px;
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  padding: 0 3px;
+  color: #fff;
+  margin-top: 2px;
+}
+
+.replay-calendar__dot--positive {
+  background: var(--color-positive);
+}
+
+.replay-calendar__dot--negative {
+  background: var(--color-negative);
+}
+
+.replay-calendar__dot--mixed {
+  background: var(--color-warning);
+}
+
+/* Popover multi-trades — au-dessus de la cellule */
+.replay-calendar__popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 200px;
+  max-width: 260px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  padding: var(--spacing-xs);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.replay-calendar__popover-title {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px var(--spacing-xs) 6px;
+  border-bottom: 1px solid var(--color-border-light);
+  margin: 0 0 2px;
+}
+
+/* Item trade dans le popover */
+.replay-calendar__popover-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+  padding: 6px var(--spacing-xs);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast);
+  width: 100%;
+}
+
+.replay-calendar__popover-item:hover {
+  background: var(--color-bg-hover);
+}
+
+.replay-calendar__popover-item--selected {
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-secondary));
+  border-color: color-mix(in srgb, var(--color-accent) 30%, var(--color-border));
+}
+
+.replay-calendar__popover-symbol {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  flex-shrink: 0;
+}
+
+.replay-calendar__popover-side {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  flex: 1;
+  padding-left: var(--spacing-xs);
+}
