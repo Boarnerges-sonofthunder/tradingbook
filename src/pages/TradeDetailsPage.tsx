@@ -62,6 +62,30 @@ function computeOutcome(
   return "breakeven";
 }
 
+function computeFallbackRiskAmount(trade: Trade): number | null {
+  if (trade.stopLoss === null) return null;
+  const distance = Math.abs(trade.entryPrice - trade.stopLoss);
+  return Number.isFinite(distance) && distance > 0 ? distance : null;
+}
+
+function computeFallbackRewardAmount(trade: Trade): number | null {
+  if (trade.takeProfit === null) return null;
+  if (trade.side === "buy") {
+    const value = trade.takeProfit - trade.entryPrice;
+    return value > 0 ? value : null;
+  }
+  const value = trade.entryPrice - trade.takeProfit;
+  return value > 0 ? value : null;
+}
+
+function computeFallbackRrr(
+  riskAmount: number | null,
+  rewardAmount: number | null,
+): number | null {
+  if (riskAmount === null || rewardAmount === null || riskAmount <= 0) return null;
+  return Math.round((rewardAmount / riskAmount) * 100) / 100;
+}
+
 // ─── Composants de badge ──────────────────────────────────
 
 function SideBadge({ side }: { side: "buy" | "sell" }) {
@@ -207,6 +231,13 @@ export default function TradeDetailsPage() {
   if (!trade) return null;
 
   const outcome = computeOutcome(trade.netPnl);
+  const displayRiskAmount =
+    trade.riskAmount ?? computeFallbackRiskAmount(trade);
+  const displayRewardAmount =
+    trade.rewardAmount ?? computeFallbackRewardAmount(trade);
+  const displayRiskRewardRatio =
+    trade.riskRewardRatio ??
+    computeFallbackRrr(displayRiskAmount, displayRewardAmount);
 
   return (
     <div className="content-max">
@@ -308,18 +339,18 @@ export default function TradeDetailsPage() {
                 {formatNum(trade.takeProfit, 5)}
               </DetailRow>
               <DetailRow label="Distance SL">
-                {trade.riskAmount != null
-                  ? `${trade.riskAmount.toFixed(5)} pts`
+                {displayRiskAmount != null
+                  ? `${displayRiskAmount.toFixed(5)} pts`
                   : "—"}
               </DetailRow>
               <DetailRow label="Distance TP">
-                {trade.rewardAmount != null
-                  ? `${trade.rewardAmount.toFixed(5)} pts`
+                {displayRewardAmount != null
+                  ? `${displayRewardAmount.toFixed(5)} pts`
                   : "—"}
               </DetailRow>
               <DetailRow label="RRR">
-                {trade.riskRewardRatio != null
-                  ? `${trade.riskRewardRatio.toFixed(2)} R`
+                {displayRiskRewardRatio != null
+                  ? `${displayRiskRewardRatio.toFixed(2)} R`
                   : "—"}
               </DetailRow>
             </section>
