@@ -299,7 +299,10 @@ export default function AISettings() {
               onClick={() =>
                 setMemory((prev) =>
                   prev
-                    ? { ...prev, summaries: [createEmptySummary(), ...prev.summaries] }
+                    ? {
+                        ...prev,
+                        summaries: [createEmptySummary(), ...prev.summaries],
+                      }
                     : prev,
                 )
               }
@@ -413,7 +416,9 @@ export default function AISettings() {
                             prev
                               ? {
                                   ...prev,
-                                  facts: prev.facts.filter((item) => item.id !== fact.id),
+                                  facts: prev.facts.filter(
+                                    (item) => item.id !== fact.id,
+                                  ),
                                 }
                               : prev,
                           )

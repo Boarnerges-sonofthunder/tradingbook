@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import type { UserSettings } from "../../../types";
-import { getSetting, setSetting } from "../../../services/settings/settingsService";
+import {
+  getSetting,
+  setSetting,
+} from "../../../services/settings/settingsService";
 import SettingsField from "./SettingsField";
 
 const MT5_TERMINAL_PATHS_SETTING_KEY = "mt5TerminalPaths";

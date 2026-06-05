@@ -6,7 +6,13 @@
 // ============================================================
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Film, Image as ImageIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  RefreshCw,
+  Film,
+  Image as ImageIcon,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useUserSettings } from "../hooks";
 import {
   formatDateTimeForSettings,
@@ -35,7 +41,10 @@ function formatPnl(
   settings: ReturnType<typeof useUserSettings>,
 ): string {
   if (value === null) return "—";
-  const formatted = formatMoneyForSettings(value, settings, { fallback: "—", currency });
+  const formatted = formatMoneyForSettings(value, settings, {
+    fallback: "—",
+    currency,
+  });
   return value > 0 ? `+${formatted}` : formatted;
 }
 
@@ -45,17 +54,43 @@ function formatPnl(
 // N trades/jour -> popover liste inline.
 // ============================================================
 
-const MONTHS_FR = ["Janvier","Fevrier","Mars","Avril","Mai","Juin","Juillet","Aout","Septembre","Octobre","Novembre","Decembre"];
-const MONTHS_EN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const DAY_HEADERS_FR = ["Lu","Ma","Me","Je","Ve","Sa","Di"];
-const DAY_HEADERS_EN = ["Mo","Tu","We","Th","Fr","Sa","Su"];
+const MONTHS_FR = [
+  "Janvier",
+  "Fevrier",
+  "Mars",
+  "Avril",
+  "Mai",
+  "Juin",
+  "Juillet",
+  "Aout",
+  "Septembre",
+  "Octobre",
+  "Novembre",
+  "Decembre",
+];
+const MONTHS_EN = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+const DAY_HEADERS_FR = ["Lu", "Ma", "Me", "Je", "Ve", "Sa", "Di"];
+const DAY_HEADERS_EN = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
 function frameToDateKey(frame: TradeReplayFrame): string | null {
   const raw = frame.closedAt ?? frame.openedAt;
   if (!raw) return null;
   const d = new Date(raw);
   if (isNaN(d.getTime())) return null;
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function ReplayCalendar({
@@ -72,17 +107,22 @@ function ReplayCalendar({
   const today = new Date();
 
   const latestDate = useMemo(() => {
-    const sorted = [...frames].sort((a, b) =>
-      new Date(b.closedAt ?? b.openedAt ?? "").getTime() -
-      new Date(a.closedAt ?? a.openedAt ?? "").getTime()
+    const sorted = [...frames].sort(
+      (a, b) =>
+        new Date(b.closedAt ?? b.openedAt ?? "").getTime() -
+        new Date(a.closedAt ?? a.openedAt ?? "").getTime(),
     );
     if (!sorted[0]) return null;
     const d = new Date(sorted[0].closedAt ?? sorted[0].openedAt ?? "");
     return isNaN(d.getTime()) ? null : d;
   }, [frames]);
 
-  const [year,  setYear]      = useState<number>(() => latestDate?.getFullYear() ?? today.getFullYear());
-  const [month, setMonth]     = useState<number>(() => latestDate?.getMonth()    ?? today.getMonth());
+  const [year, setYear] = useState<number>(
+    () => latestDate?.getFullYear() ?? today.getFullYear(),
+  );
+  const [month, setMonth] = useState<number>(
+    () => latestDate?.getMonth() ?? today.getMonth(),
+  );
   const [popoverDay, setPopoverDay] = useState<string | null>(null);
 
   // Index frames par jour
@@ -99,30 +139,34 @@ function ReplayCalendar({
 
   // Grille 7 colonnes, semaine commence lundi
   const cells = useMemo(() => {
-    const firstDay   = new Date(year, month, 1).getDay();
+    const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const offset = (firstDay + 6) % 7;
-    const grid: Array<{dayNum: number|null; key: string|null}> = [];
-    for (let i = 0; i < offset; i++) grid.push({dayNum: null, key: null});
+    const grid: Array<{ dayNum: number | null; key: string | null }> = [];
+    for (let i = 0; i < offset; i++) grid.push({ dayNum: null, key: null });
     for (let d = 1; d <= daysInMonth; d++) {
       grid.push({
         dayNum: d,
-        key: `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`,
+        key: `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
       });
     }
-    while (grid.length % 7 !== 0) grid.push({dayNum: null, key: null});
+    while (grid.length % 7 !== 0) grid.push({ dayNum: null, key: null });
     return grid;
   }, [year, month]);
 
   function prevMonth() {
     setPopoverDay(null);
-    if (month === 0) { setMonth(11); setYear(y => y - 1); }
-    else setMonth(m => m - 1);
+    if (month === 0) {
+      setMonth(11);
+      setYear((y) => y - 1);
+    } else setMonth((m) => m - 1);
   }
   function nextMonth() {
     setPopoverDay(null);
-    if (month === 11) { setMonth(0); setYear(y => y + 1); }
-    else setMonth(m => m + 1);
+    if (month === 11) {
+      setMonth(0);
+      setYear((y) => y + 1);
+    } else setMonth((m) => m + 1);
   }
 
   const lang = settings.language;
@@ -133,41 +177,62 @@ function ReplayCalendar({
     <div className="replay-calendar">
       {/* Navigation mois */}
       <div className="replay-calendar__nav">
-        <button type="button" className="replay-calendar__nav-btn" onClick={prevMonth}
-          aria-label={tr(lang, "Mois precedent", "Previous month")}>
+        <button
+          type="button"
+          className="replay-calendar__nav-btn"
+          onClick={prevMonth}
+          aria-label={tr(lang, "Mois precedent", "Previous month")}
+        >
           <ChevronLeft size={14} />
         </button>
-        <span className="replay-calendar__month-label">{monthLabel} {year}</span>
-        <button type="button" className="replay-calendar__nav-btn" onClick={nextMonth}
-          aria-label={tr(lang, "Mois suivant", "Next month")}>
+        <span className="replay-calendar__month-label">
+          {monthLabel} {year}
+        </span>
+        <button
+          type="button"
+          className="replay-calendar__nav-btn"
+          onClick={nextMonth}
+          aria-label={tr(lang, "Mois suivant", "Next month")}
+        >
           <ChevronRight size={14} />
         </button>
       </div>
 
       {/* Grille jours */}
       <div className="replay-calendar__grid">
-        {dayHeaders.map(h => (
-          <div key={h} className="replay-calendar__day-header">{h}</div>
+        {dayHeaders.map((h) => (
+          <div key={h} className="replay-calendar__day-header">
+            {h}
+          </div>
         ))}
 
         {cells.map((cell, i) => {
           if (!cell.key || cell.dayNum === null) {
-            return <div key={`e-${i}`} className="replay-calendar__cell replay-calendar__cell--empty" />;
+            return (
+              <div
+                key={`e-${i}`}
+                className="replay-calendar__cell replay-calendar__cell--empty"
+              />
+            );
           }
 
-          const dayFrames      = framesByDay.get(cell.key) ?? [];
-          const hasTradesHere  = dayFrames.length > 0;
-          const hasPnlPositive = dayFrames.some(f => (f.netPnl ?? 0) > 0);
-          const hasPnlNegative = dayFrames.some(f => (f.netPnl ?? 0) < 0);
-          const isSelectedDay  = dayFrames.some(f => f.tradeId === selectedTradeId);
-          const isPopoverOpen  = popoverDay === cell.key;
+          const dayFrames = framesByDay.get(cell.key) ?? [];
+          const hasTradesHere = dayFrames.length > 0;
+          const hasPnlPositive = dayFrames.some((f) => (f.netPnl ?? 0) > 0);
+          const hasPnlNegative = dayFrames.some((f) => (f.netPnl ?? 0) < 0);
+          const isSelectedDay = dayFrames.some(
+            (f) => f.tradeId === selectedTradeId,
+          );
+          const isPopoverOpen = popoverDay === cell.key;
           const dayColumnIndex = i % 7;
 
           let dotClass = "";
           if (hasTradesHere) {
-            if      (hasPnlPositive && !hasPnlNegative) dotClass = "replay-calendar__dot--positive";
-            else if (!hasPnlPositive && hasPnlNegative) dotClass = "replay-calendar__dot--negative";
-            else                                         dotClass = "replay-calendar__dot--mixed";
+            if (hasPnlPositive && !hasPnlNegative)
+              dotClass = "replay-calendar__dot--positive";
+            else if (!hasPnlPositive && hasPnlNegative)
+              dotClass = "replay-calendar__dot--negative";
+            else dotClass = "replay-calendar__dot--mixed";
           }
 
           return (
@@ -178,13 +243,17 @@ function ReplayCalendar({
                 className={[
                   "replay-calendar__cell",
                   hasTradesHere ? "replay-calendar__cell--has-trades" : "",
-                  isSelectedDay ? "replay-calendar__cell--selected"   : "",
-                  isPopoverOpen ? "replay-calendar__cell--active"     : "",
-                ].filter(Boolean).join(" ")}
+                  isSelectedDay ? "replay-calendar__cell--selected" : "",
+                  isPopoverOpen ? "replay-calendar__cell--active" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 onClick={() => {
                   if (!hasTradesHere) return;
-                  if (dayFrames.length === 1) { onSelect(dayFrames[0].tradeId); setPopoverDay(null); }
-                  else setPopoverDay(isPopoverOpen ? null : cell.key);
+                  if (dayFrames.length === 1) {
+                    onSelect(dayFrames[0].tradeId);
+                    setPopoverDay(null);
+                  } else setPopoverDay(isPopoverOpen ? null : cell.key);
                 }}
               >
                 <span className="replay-calendar__day-num">{cell.dayNum}</span>
@@ -200,29 +269,52 @@ function ReplayCalendar({
                 <div
                   className={[
                     "replay-calendar__popover",
-                    dayColumnIndex <= 1 ? "replay-calendar__popover--align-left" : "",
-                    dayColumnIndex >= 5 ? "replay-calendar__popover--align-right" : "",
-                  ].filter(Boolean).join(" ")}
+                    dayColumnIndex <= 1
+                      ? "replay-calendar__popover--align-left"
+                      : "",
+                    dayColumnIndex >= 5
+                      ? "replay-calendar__popover--align-right"
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                 >
                   <p className="replay-calendar__popover-title">
-                    {dayFrames.length} {tr(lang, "trades ce jour", "trades this day")}
+                    {dayFrames.length}{" "}
+                    {tr(lang, "trades ce jour", "trades this day")}
                   </p>
-                  {dayFrames.map(frame => {
-                    const pnl    = frame.netPnl ?? 0;
+                  {dayFrames.map((frame) => {
+                    const pnl = frame.netPnl ?? 0;
                     const pnlStr = `${pnl > 0 ? "+" : ""}${pnl.toFixed(2)} ${frame.currency}`;
-                    const pnlCls = pnl > 0 ? "text-positive" : pnl < 0 ? "text-negative" : "text-muted";
+                    const pnlCls =
+                      pnl > 0
+                        ? "text-positive"
+                        : pnl < 0
+                          ? "text-negative"
+                          : "text-muted";
                     return (
                       <button
                         key={frame.tradeId}
                         type="button"
                         className={[
                           "replay-calendar__popover-item",
-                          frame.tradeId === selectedTradeId ? "replay-calendar__popover-item--selected" : "",
-                        ].filter(Boolean).join(" ")}
-                        onClick={() => { onSelect(frame.tradeId); setPopoverDay(null); }}
+                          frame.tradeId === selectedTradeId
+                            ? "replay-calendar__popover-item--selected"
+                            : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                        onClick={() => {
+                          onSelect(frame.tradeId);
+                          setPopoverDay(null);
+                        }}
                       >
-                        <span className="replay-calendar__popover-symbol">{frame.symbol}</span>
-                        <span className="replay-calendar__popover-side">{frame.side.toUpperCase()}</span>
+                        <span className="replay-calendar__popover-symbol">
+                          {frame.symbol}
+                        </span>
+                        <span className="replay-calendar__popover-side">
+                          {frame.side.toUpperCase()}
+                        </span>
                         <span className={pnlCls}>{pnlStr}</span>
                       </button>
                     );
@@ -256,10 +348,10 @@ function ReplayDetailRow({ label, value }: { label: string; value: string }) {
 
 export default function ReplayPage() {
   const settings = useUserSettings();
-  const [dataset, setDataset]             = useState<TradeReplayDataset | null>(null);
+  const [dataset, setDataset] = useState<TradeReplayDataset | null>(null);
   const [selectedTradeId, setSelectedTradeId] = useState<number | null>(null);
-  const [loading, setLoading]             = useState(true);
-  const [error,   setError]               = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadReplayDataset = useCallback(async () => {
     setLoading(true);
@@ -272,9 +364,11 @@ export default function ReplayPage() {
       });
 
       setDataset(nextDataset);
-      setSelectedTradeId(current => {
+      setSelectedTradeId((current) => {
         if (current !== null) {
-          const stillExists = nextDataset.frames.some(f => f.tradeId === current);
+          const stillExists = nextDataset.frames.some(
+            (f) => f.tradeId === current,
+          );
           if (stillExists) return current;
         }
         return nextDataset.frames[0]?.tradeId ?? null;
@@ -285,20 +379,24 @@ export default function ReplayPage() {
       setError(
         err instanceof Error
           ? err.message
-          : tr(settings.language,
+          : tr(
+              settings.language,
               "Impossible de charger les trades pour le replay.",
-              "Unable to load trades for replay."),
+              "Unable to load trades for replay.",
+            ),
       );
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { void loadReplayDataset(); }, [loadReplayDataset]);
+  useEffect(() => {
+    void loadReplayDataset();
+  }, [loadReplayDataset]);
 
   const selectedFrame = useMemo(() => {
     if (!dataset || selectedTradeId === null) return null;
-    return dataset.frames.find(f => f.tradeId === selectedTradeId) ?? null;
+    return dataset.frames.find((f) => f.tradeId === selectedTradeId) ?? null;
   }, [dataset, selectedTradeId]);
 
   const handleSelectTrade = useCallback((tradeId: number) => {
@@ -319,8 +417,12 @@ export default function ReplayPage() {
           </p>
         </div>
         <div className="page-actions">
-          <button type="button" className="btn-secondary btn-icon-text"
-            onClick={() => void loadReplayDataset()} disabled={loading}>
+          <button
+            type="button"
+            className="btn-secondary btn-icon-text"
+            onClick={() => void loadReplayDataset()}
+            disabled={loading}
+          >
             <RefreshCw size={14} aria-hidden />
             {tr(settings.language, "Rafraichir", "Refresh")}
           </button>
@@ -331,12 +433,20 @@ export default function ReplayPage() {
 
       {loading ? (
         <p className="page-loading">
-          {tr(settings.language, "Chargement du replay des trades…", "Loading trade replay...")}
+          {tr(
+            settings.language,
+            "Chargement du replay des trades…",
+            "Loading trade replay...",
+          )}
         </p>
       ) : !dataset || dataset.frames.length === 0 ? (
         <div className="trades-empty">
           <p className="trades-empty__title">
-            {tr(settings.language, "Aucun trade replayable", "No replayable trade")}
+            {tr(
+              settings.language,
+              "Aucun trade replayable",
+              "No replayable trade",
+            )}
           </p>
           <p className="trades-empty__hint">
             {tr(
@@ -385,30 +495,59 @@ export default function ReplayPage() {
             ) : (
               <>
                 <ReplayDetailRow label="Symbole" value={selectedFrame.symbol} />
-                <ReplayDetailRow label="Entree"  value={formatPrice(selectedFrame.entryPrice)} />
-                <ReplayDetailRow label="Sortie"  value={formatPrice(selectedFrame.exitPrice)} />
-                <ReplayDetailRow label="SL"      value={formatPrice(selectedFrame.stopLoss)} />
-                <ReplayDetailRow label="TP"      value={formatPrice(selectedFrame.takeProfit)} />
-                <ReplayDetailRow label="Ouvert le" value={formatDate(selectedFrame.openedAt, settings)} />
-                <ReplayDetailRow label="Ferme le"  value={formatDate(selectedFrame.closedAt,  settings)} />
-                <ReplayDetailRow label="PnL net"   value={formatPnl(selectedFrame.netPnl, selectedFrame.currency, settings)} />
+                <ReplayDetailRow
+                  label="Entree"
+                  value={formatPrice(selectedFrame.entryPrice)}
+                />
+                <ReplayDetailRow
+                  label="Sortie"
+                  value={formatPrice(selectedFrame.exitPrice)}
+                />
+                <ReplayDetailRow
+                  label="SL"
+                  value={formatPrice(selectedFrame.stopLoss)}
+                />
+                <ReplayDetailRow
+                  label="TP"
+                  value={formatPrice(selectedFrame.takeProfit)}
+                />
+                <ReplayDetailRow
+                  label="Ouvert le"
+                  value={formatDate(selectedFrame.openedAt, settings)}
+                />
+                <ReplayDetailRow
+                  label="Ferme le"
+                  value={formatDate(selectedFrame.closedAt, settings)}
+                />
+                <ReplayDetailRow
+                  label="PnL net"
+                  value={formatPnl(
+                    selectedFrame.netPnl,
+                    selectedFrame.currency,
+                    settings,
+                  )}
+                />
 
                 <div style={{ marginTop: 18 }}>
-                  <h3 className="trade-detail-section-title" style={{ marginBottom: 8 }}>
+                  <h3
+                    className="trade-detail-section-title"
+                    style={{ marginBottom: 8 }}
+                  >
                     Screenshots associes ({selectedFrame.screenshots.length})
                   </h3>
                   {selectedFrame.screenshots.length === 0 ? (
                     <p className="td-muted">Aucune capture liee a ce trade.</p>
                   ) : (
                     <div style={{ display: "grid", gap: 8 }}>
-                      {selectedFrame.screenshots.map(screenshot => (
+                      {selectedFrame.screenshots.map((screenshot) => (
                         <div key={screenshot.id} className="trade-detail-row">
                           <span className="trade-detail-label">
                             <ImageIcon size={12} aria-hidden />
                             {screenshot.label ?? screenshot.fileName}
                           </span>
                           <span className="trade-detail-value">
-                            {screenshot.timeframe ?? "—"} · {formatDate(screenshot.createdAt, settings)}
+                            {screenshot.timeframe ?? "—"} ·{" "}
+                            {formatDate(screenshot.createdAt, settings)}
                           </span>
                         </div>
                       ))}
@@ -417,7 +556,10 @@ export default function ReplayPage() {
                 </div>
 
                 <div style={{ marginTop: 18 }}>
-                  <TradeReplaySection selectedFrame={selectedFrame} settings={settings} />
+                  <TradeReplaySection
+                    selectedFrame={selectedFrame}
+                    settings={settings}
+                  />
                 </div>
               </>
             )}

@@ -244,12 +244,14 @@ export default function DashboardPage() {
           }),
         );
 
-        const accountIds = [...new Set(
-          results
-            .filter((entry) => entry.connected)
-            .map((entry) => entry.result?.accountId?.trim() ?? "")
-            .filter((value) => value !== ""),
-        )];
+        const accountIds = [
+          ...new Set(
+            results
+              .filter((entry) => entry.connected)
+              .map((entry) => entry.result?.accountId?.trim() ?? "")
+              .filter((value) => value !== ""),
+          ),
+        ];
 
         connectedAccountIdsRef.current = accountIds;
         startTransition(() => {

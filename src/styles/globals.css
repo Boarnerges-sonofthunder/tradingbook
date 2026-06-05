@@ -11431,7 +11431,6 @@ select:focus {
   }
 }
 
-
 /* --- Replay Calendrier (s�lection trades) --------------------------------- */
 
 /* Layout deux colonnes : calendrier | detail replay */
@@ -11475,7 +11474,9 @@ select:focus {
   border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .replay-calendar__nav-btn:hover {
@@ -11548,13 +11549,21 @@ select:focus {
 }
 
 .replay-calendar__cell--selected {
-  background: color-mix(in srgb, var(--color-accent) 15%, var(--color-bg-secondary));
+  background: color-mix(
+    in srgb,
+    var(--color-accent) 15%,
+    var(--color-bg-secondary)
+  );
   border-color: var(--color-accent);
 }
 
 .replay-calendar__cell--active {
   border-color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-bg-secondary));
+  background: color-mix(
+    in srgb,
+    var(--color-accent) 10%,
+    var(--color-bg-secondary)
+  );
 }
 
 /* Num�ro du jour */
@@ -11659,8 +11668,16 @@ select:focus {
 }
 
 .replay-calendar__popover-item--selected {
-  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-secondary));
-  border-color: color-mix(in srgb, var(--color-accent) 30%, var(--color-border));
+  background: color-mix(
+    in srgb,
+    var(--color-accent) 12%,
+    var(--color-bg-secondary)
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--color-accent) 30%,
+    var(--color-border)
+  );
 }
 
 .replay-calendar__popover-symbol {
