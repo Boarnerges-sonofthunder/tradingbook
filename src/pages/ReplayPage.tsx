@@ -161,6 +161,7 @@ function ReplayCalendar({
           const hasPnlNegative = dayFrames.some(f => (f.netPnl ?? 0) < 0);
           const isSelectedDay  = dayFrames.some(f => f.tradeId === selectedTradeId);
           const isPopoverOpen  = popoverDay === cell.key;
+          const dayColumnIndex = i % 7;
 
           let dotClass = "";
           if (hasTradesHere) {
@@ -196,7 +197,13 @@ function ReplayCalendar({
 
               {/* Popover multi-trades */}
               {isPopoverOpen && (
-                <div className="replay-calendar__popover">
+                <div
+                  className={[
+                    "replay-calendar__popover",
+                    dayColumnIndex <= 1 ? "replay-calendar__popover--align-left" : "",
+                    dayColumnIndex >= 5 ? "replay-calendar__popover--align-right" : "",
+                  ].filter(Boolean).join(" ")}
+                >
                   <p className="replay-calendar__popover-title">
                     {dayFrames.length} {tr(lang, "trades ce jour", "trades this day")}
                   </p>
