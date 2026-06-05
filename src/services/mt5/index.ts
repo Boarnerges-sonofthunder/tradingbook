@@ -36,6 +36,14 @@ export {
   type MT5DetectTerminalsResult,
 } from "./mt5TerminalDetectionService";
 export {
+  resolveMT5TerminalSources,
+  resolveConnectedMT5TerminalSources,
+  getDisconnectedMT5SourceKeys,
+  isMT5SourceConnected,
+  setMT5SourceConnected,
+  sourceKeyFromTerminalPath,
+} from "./mt5TerminalConnectionService";
+export {
   startAutoRefresh,
   stopAutoRefresh,
   isAutoRefreshActive,

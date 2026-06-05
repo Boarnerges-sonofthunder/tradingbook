@@ -8040,11 +8040,24 @@ select:focus {
   border-top: 1px dashed var(--color-border);
 }
 
+.dashboard-mt5-source__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
 .dashboard-mt5-source__title {
   margin: 0;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
+}
+
+.dashboard-mt5-source__status {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-warning);
 }
 
 .dashboard-pill {

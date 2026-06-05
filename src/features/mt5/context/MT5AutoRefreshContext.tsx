@@ -37,7 +37,10 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { runMT5Sync } from "../../../services/mt5";
+import {
+  resolveConnectedMT5TerminalSources,
+  runMT5Sync,
+} from "../../../services/mt5";
 import { useNotification } from "../../../hooks/useNotification";
 import {
   useMT5AutoRefresh,
@@ -94,16 +97,45 @@ export function MT5AutoRefreshProvider({
    */
   const handleBackgroundSync = useCallback(async () => {
     try {
-      const report = await runMT5Sync({ period: "30d" });
+      const sources = await resolveConnectedMT5TerminalSources();
+      if (sources.length === 0) {
+        return;
+      }
+
+      let inserted = 0;
+      let updated = 0;
+      let failed = 0;
+      let firstErrorMessage: string | null = null;
+
+      for (const terminalPath of sources) {
+        const report = await runMT5Sync({
+          period: "30d",
+          terminalPath: terminalPath ?? undefined,
+        });
+
+        inserted += report.inserted;
+        updated += report.updated;
+
+        if (!report.success) {
+          failed += 1;
+          if (!firstErrorMessage) {
+            firstErrorMessage = report.message;
+          }
+        }
+      }
 
       // Ne pas afficher de toast si la page MT5 est ouverte (elle s'en charge)
       if (pageMountedRef.current) return;
 
-      if (!report.success) {
-        notify.error(`Sync MT5 échouée : ${report.message}`);
-      } else if (report.inserted > 0 || report.updated > 0) {
+      if (failed > 0) {
+        notify.error(
+          firstErrorMessage
+            ? `Sync MT5 partielle : ${firstErrorMessage}`
+            : "Sync MT5 partielle : au moins un compte a échoué.",
+        );
+      } else if (inserted > 0 || updated > 0) {
         notify.success(
-          `Sync MT5 : ${report.inserted} trade(s) importé(s), ${report.updated} mis à jour.`,
+          `Sync MT5 : ${inserted} trade(s) importé(s), ${updated} mis à jour.`,
         );
       }
       // Aucun toast si aucun changement (sync silencieuse)

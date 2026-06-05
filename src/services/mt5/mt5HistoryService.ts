@@ -124,22 +124,35 @@ function buildHistoryArgs(
   period: MT5HistoryPeriod,
   fromDate: string | null,
   toDate: string | null,
+  terminalPath: string | null,
 ): string[] {
   const base = [scriptPath, "--mode", "history"];
+  const normalizedTerminalPath = terminalPath?.trim() ?? "";
 
   if (period === "custom") {
     if (!fromDate) {
       // Ne devrait pas arriver si l'UI valide correctement
       logger.warn("buildHistoryArgs : period=custom sans fromDate, fallback sur 30d");
-      return [...base, "--period", "30d"];
+      const fallbackArgs = [...base, "--period", "30d"];
+      if (normalizedTerminalPath !== "") {
+        fallbackArgs.push("--terminal-path", normalizedTerminalPath);
+      }
+      return fallbackArgs;
     }
     const args = [...base, "--from", fromDate];
     if (toDate) args.push("--to", toDate);
+    if (normalizedTerminalPath !== "") {
+      args.push("--terminal-path", normalizedTerminalPath);
+    }
     return args;
   }
 
   // Périodes prédéfinies : today, 7d, 30d
-  return [...base, "--period", period];
+  const args = [...base, "--period", period];
+  if (normalizedTerminalPath !== "") {
+    args.push("--terminal-path", normalizedTerminalPath);
+  }
+  return args;
 }
 
 function validateDateRange(
@@ -265,10 +278,16 @@ function parseHistoryOutput(stdout: string): MT5HistoryResult {
  *   // Plage personnalisée
  *   const result = await fetchMT5History("custom", "2026-01-01", "2026-03-31");
  */
+export interface FetchMT5HistoryOptions {
+  /** Chemin terminal MT5 cible pour environnement multi-instance. */
+  terminalPath?: string;
+}
+
 export async function fetchMT5History(
   period: MT5HistoryPeriod = "30d",
   fromDate: string | null = null,
   toDate: string | null = null,
+  options?: FetchMT5HistoryOptions,
 ): Promise<MT5HistoryResult> {
   logger.debug(`Chargement historique MT5 — période: ${period}, from: ${fromDate ?? "auto"}, to: ${toDate ?? "auto"}`);
 
@@ -294,7 +313,13 @@ export async function fetchMT5History(
     );
   }
 
-  const args = buildHistoryArgs(scriptPath, period, fromDate, toDate);
+  const args = buildHistoryArgs(
+    scriptPath,
+    period,
+    fromDate,
+    toDate,
+    options?.terminalPath ?? null,
+  );
   logger.debug(`Arguments : ${args.join(" ")}`);
 
   // ── Timeout de sécurité ───────────────────────────────────

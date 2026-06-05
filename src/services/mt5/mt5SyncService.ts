@@ -75,6 +75,8 @@ export interface MT5SyncOptions {
   fromDate?: string | null;
   /** Date de fin si period = "custom" (ISO 8601). */
   toDate?: string | null;
+  /** Chemin terminal MT5 cible pour environnement multi-instance. */
+  terminalPath?: string;
   /** Active la sync OHLC locale pour replay. */
   syncReplayMarketData?: boolean;
   /** Timeframes OHLC à synchroniser depuis MT5 bridge. */
@@ -104,11 +106,14 @@ export async function runMT5Sync(
   const period = options.period ?? "30d";
   const fromDate = options.fromDate ?? null;
   const toDate = options.toDate ?? null;
+  const terminalPath = options.terminalPath?.trim() || null;
   // Désactivé par défaut pour garder une sync MT5 rapide et centrée trades.
   const syncReplayMarketData = options.syncReplayMarketData ?? false;
   const startedAt = new Date().toISOString();
 
-  logger.info(`Démarrage synchronisation MT5 — période: ${period}`);
+  logger.info(
+    `Démarrage synchronisation MT5 — période: ${period}${terminalPath ? `, terminal=${terminalPath}` : ""}`,
+  );
 
   // Étape 1 : ouvrir le log fonctionnel local de cette synchronisation.
   let logId: number | undefined;
@@ -124,8 +129,12 @@ export async function runMT5Sync(
   // ── Étape 2 : Récupérer historique + positions en parallèle ──
   logger.debug("Fetching historique MT5 et positions ouvertes en parallèle…");
   const [historyResult, positionsResult] = await Promise.allSettled([
-    fetchMT5History(period, fromDate, toDate),
-    fetchMT5Positions(),
+    fetchMT5History(period, fromDate, toDate, {
+      terminalPath: terminalPath ?? undefined,
+    }),
+    fetchMT5Positions({
+      terminalPath: terminalPath ?? undefined,
+    }),
   ]);
 
   // Extraire les résultats (sans throw si une des deux fetches a échoué)

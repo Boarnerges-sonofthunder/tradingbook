@@ -180,6 +180,7 @@ export interface TradeFilters {
   dateTo?: string;     // ISO 8601 — filtre sur opened_at
   broker?: string;
   accountId?: string;
+  accountIds?: string[];
   tradingAccountId?: number | null;
 }
 
@@ -217,6 +218,11 @@ function buildWhereClause(filters: TradeFilters): {
   if (filters.dateTo) { conditions.push(`opened_at <= $${idx++}`); params.push(filters.dateTo); }
   if (filters.broker) { conditions.push(`broker = $${idx++}`); params.push(filters.broker); }
   if (filters.accountId) { conditions.push(`account_id = $${idx++}`); params.push(filters.accountId); }
+  if (filters.accountIds && filters.accountIds.length > 0) {
+    const placeholders = filters.accountIds.map(() => `$${idx++}`).join(", ");
+    conditions.push(`account_id IN (${placeholders})`);
+    params.push(...filters.accountIds);
+  }
   if (filters.tradingAccountId !== undefined) {
     conditions.push(
       filters.tradingAccountId === null

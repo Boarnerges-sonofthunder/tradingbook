@@ -26,11 +26,14 @@ import {
 } from "react";
 import { RefreshCw, Waves } from "lucide-react";
 import { getDashboardStats } from "../services/analytics";
-import { getSetting } from "../services/settings/settingsService";
 import {
   fetchMT5Positions,
+  getDisconnectedMT5SourceKeys,
+  isMT5SourceConnected,
+  resolveMT5TerminalSources,
+  setMT5SourceConnected,
+  sourceKeyFromTerminalPath,
   startMT5PositionsTickStream,
-  detectMT5Terminals,
   type MT5PositionsTickStreamController,
 } from "../services/mt5";
 import DashboardStatsGrid from "../features/dashboard/components/DashboardStatsGrid";
@@ -64,32 +67,14 @@ function derivePositionsStatus(
 }
 
 const DASHBOARD_MT5_TICK_POLL_MS = 500;
-const MT5_TERMINAL_PATHS_SETTING_KEY = "mt5TerminalPaths";
 
 interface MT5PositionsSourceEntry {
   key: string;
   terminalPath: string | null;
   label: string;
+  connected: boolean;
   result: MT5PositionsResult | null;
   status: MT5PositionsStatus;
-}
-
-function sourceKey(terminalPath: string | null): string {
-  return terminalPath ?? "__default__";
-}
-
-function parseTerminalPaths(raw: string | null): string[] {
-  if (raw == null || raw.trim() === "") return [];
-
-  const dedup = new Set<string>();
-  for (const token of raw.split(/[\r\n;,]/g)) {
-    const normalized = token.trim();
-    if (normalized !== "") {
-      dedup.add(normalized);
-    }
-  }
-
-  return [...dedup];
 }
 
 function extractTerminalLabel(path: string): string {
@@ -99,34 +84,21 @@ function extractTerminalLabel(path: string): string {
   return last.toLowerCase().endsWith(".exe") ? last.slice(0, -4) : last;
 }
 
-/**
- * Résout la liste des chemins de terminaux MT5 à interroger.
- *
- * Priorité :
- *   1. Auto-détection PowerShell (processus terminal64.exe en cours)
- *   2. Config manuelle dans Settings (mt5TerminalPaths) si détection vide
- *   3. null (terminal par défaut) si tout est vide
- */
-async function resolveTerminalSources(): Promise<Array<string | null>> {
-  // Tentative auto-détection
-  try {
-    const detected = await detectMT5Terminals();
-    if (detected.success && detected.totalTerminals > 0) {
-      return detected.terminals.map((t) => t.path);
-    }
-  } catch {
-    // Détection non critique — fallback silencieux
+function buildSourceLabel(
+  language: "fr" | "en",
+  terminalPath: string | null,
+  index: number,
+  accountId?: string,
+): string {
+  if (accountId && accountId.trim() !== "") {
+    return `${tr(language, "Compte", "Account")} ${accountId.trim()}`;
   }
 
-  // Fallback : config manuelle
-  const rawManual = await getSetting(MT5_TERMINAL_PATHS_SETTING_KEY);
-  const manual = parseTerminalPaths(rawManual);
-  if (manual.length > 0) {
-    return manual;
+  if (terminalPath === null) {
+    return tr(language, "Terminal MT5 actif", "Active MT5 terminal");
   }
 
-  // Dernier fallback : terminal par défaut (comportement original)
-  return [null];
+  return `${tr(language, "Terminal", "Terminal")} ${index + 1} — ${extractTerminalLabel(terminalPath)}`;
 }
 
 interface DashboardAutoRefreshSyncWatcherProps {
@@ -165,6 +137,9 @@ export default function DashboardPage() {
   >([]);
   const [positionsLoading, setPositionsLoading] = useState(true);
   const [positionsRefreshing, setPositionsRefreshing] = useState(false);
+  const [connectionUpdateKey, setConnectionUpdateKey] = useState(0);
+  const [togglePendingKey, setTogglePendingKey] = useState<string | null>(null);
+  const connectedAccountIdsRef = useRef<string[]>([]);
   const hasLoadedStatsRef = useRef(false);
   const hasLoadedPositionsRef = useRef(false);
   const positionsTickControllersRef = useRef<
@@ -175,57 +150,70 @@ export default function DashboardPage() {
   const isRefreshing = statsRefreshing || positionsRefreshing;
   const isInitialLoading = statsLoading;
 
-  const loadStats = useCallback(async (options?: { background?: boolean }) => {
-    const isBackground = options?.background ?? false;
+  const loadStats = useCallback(
+    async (options?: { background?: boolean; accountIds?: string[] }) => {
+      const isBackground = options?.background ?? false;
+      const activeAccountIds =
+        options?.accountIds ?? connectedAccountIdsRef.current;
 
-    if (!hasLoadedStatsRef.current && !isBackground) {
-      setStatsLoading(true);
-    } else {
-      setStatsRefreshing(true);
-    }
+      if (!hasLoadedStatsRef.current && !isBackground) {
+        setStatsLoading(true);
+      } else {
+        setStatsRefreshing(true);
+      }
 
-    setStatsError(false);
+      setStatsError(false);
 
-    try {
-      const data = await getDashboardStats();
-      startTransition(() => {
-        setStatsResult(data);
-      });
-      hasLoadedStatsRef.current = true;
-    } catch (err) {
-      console.error("[DashboardPage] Erreur chargement statistiques :", err);
-      setStatsError(true);
-    } finally {
-      setStatsLoading(false);
-      setStatsRefreshing(false);
-    }
-  }, []);
+      try {
+        if (activeAccountIds.length === 0) {
+          startTransition(() => {
+            setStatsResult({ isEmpty: true, stats: null });
+          });
+          hasLoadedStatsRef.current = true;
+          return;
+        }
+
+        const data = await getDashboardStats({ accountIds: activeAccountIds });
+        startTransition(() => {
+          setStatsResult(data);
+        });
+        hasLoadedStatsRef.current = true;
+      } catch (err) {
+        console.error("[DashboardPage] Erreur chargement statistiques :", err);
+        setStatsError(true);
+      } finally {
+        setStatsLoading(false);
+        setStatsRefreshing(false);
+      }
+    },
+    [],
+  );
 
   const loadOpenPositions = useCallback(
     async (options?: { background?: boolean }) => {
       const isBackground = options?.background ?? false;
 
-      const sources = await resolveTerminalSources();
+      const [sources, disconnectedKeys] = await Promise.all([
+        resolveMT5TerminalSources(),
+        getDisconnectedMT5SourceKeys(),
+      ]);
+
+      const entriesTemplate = sources.map((terminalPath, index) => {
+        const connected = isMT5SourceConnected(terminalPath, disconnectedKeys);
+        return {
+          key: sourceKeyFromTerminalPath(terminalPath),
+          terminalPath,
+          connected,
+          label: buildSourceLabel(settings.language, terminalPath, index),
+          result: null,
+          status: connected ? "loading" : "idle",
+        } satisfies MT5PositionsSourceEntry;
+      });
 
       if (!hasLoadedPositionsRef.current && !isBackground) {
         setPositionsLoading(true);
         startTransition(() => {
-          setPositionsSources(
-            sources.map((terminalPath, index) => ({
-              key: sourceKey(terminalPath),
-              terminalPath,
-              label:
-                terminalPath === null
-                  ? tr(
-                      settings.language,
-                      "Terminal MT5 actif",
-                      "Active MT5 terminal",
-                    )
-                  : `${tr(settings.language, "Terminal", "Terminal")} ${index + 1} — ${extractTerminalLabel(terminalPath)}`,
-              result: null,
-              status: "loading",
-            })),
-          );
+          setPositionsSources(entriesTemplate);
         });
       } else {
         setPositionsRefreshing(true);
@@ -233,39 +221,51 @@ export default function DashboardPage() {
 
       try {
         const results = await Promise.all(
-          sources.map(async (terminalPath, index) => {
+          entriesTemplate.map(async (entry, index) => {
+            if (!entry.connected) {
+              return entry;
+            }
+
             const result = await fetchMT5Positions({
-              terminalPath: terminalPath ?? undefined,
+              terminalPath: entry.terminalPath ?? undefined,
             });
 
             return {
-              key: sourceKey(terminalPath),
-              terminalPath,
-              label:
-                terminalPath === null
-                  ? tr(
-                      settings.language,
-                      "Terminal MT5 actif",
-                      "Active MT5 terminal",
-                    )
-                  : `${tr(settings.language, "Terminal", "Terminal")} ${index + 1} — ${extractTerminalLabel(terminalPath)}`,
+              ...entry,
+              label: buildSourceLabel(
+                settings.language,
+                entry.terminalPath,
+                index,
+                result.accountId,
+              ),
               result,
               status: derivePositionsStatus(result),
             } satisfies MT5PositionsSourceEntry;
           }),
         );
 
+        const accountIds = [...new Set(
+          results
+            .filter((entry) => entry.connected)
+            .map((entry) => entry.result?.accountId?.trim() ?? "")
+            .filter((value) => value !== ""),
+        )];
+
+        connectedAccountIdsRef.current = accountIds;
         startTransition(() => {
           setPositionsSources(results);
         });
         hasLoadedPositionsRef.current = true;
+        return accountIds;
       } catch (err) {
         console.error("[DashboardPage] Erreur chargement positions MT5 :", err);
+        connectedAccountIdsRef.current = [];
         startTransition(() => {
           setPositionsSources([
             {
-              key: sourceKey(null),
+              key: sourceKeyFromTerminalPath(null),
               terminalPath: null,
+              connected: true,
               label: tr(
                 settings.language,
                 "Terminal MT5 actif",
@@ -283,6 +283,7 @@ export default function DashboardPage() {
           ]);
         });
         hasLoadedPositionsRef.current = true;
+        return [];
       } finally {
         setPositionsLoading(false);
         setPositionsRefreshing(false);
@@ -294,11 +295,8 @@ export default function DashboardPage() {
   const refreshDashboard = useCallback(
     async (options?: { background?: boolean }) => {
       const isBackground = options?.background ?? false;
-
-      await Promise.all([
-        loadStats({ background: isBackground }),
-        loadOpenPositions({ background: isBackground }),
-      ]);
+      const accountIds = await loadOpenPositions({ background: isBackground });
+      await loadStats({ background: isBackground, accountIds });
     },
     [loadOpenPositions, loadStats],
   );
@@ -308,17 +306,30 @@ export default function DashboardPage() {
   }, [refreshDashboard]);
 
   const handleRetryStats = useCallback(() => {
-    void loadStats();
-  }, [loadStats]);
+    void refreshDashboard();
+  }, [refreshDashboard]);
 
   const handleRefreshPositions = useCallback(() => {
-    void loadOpenPositions({ background: true });
-  }, [loadOpenPositions]);
+    void refreshDashboard({ background: true });
+  }, [refreshDashboard]);
+
+  const handleToggleSourceConnection = useCallback(
+    async (source: MT5PositionsSourceEntry) => {
+      const nextConnected = !source.connected;
+      setTogglePendingKey(source.key);
+
+      try {
+        await setMT5SourceConnected(source.terminalPath, nextConnected);
+        setConnectionUpdateKey((value) => value + 1);
+        await refreshDashboard({ background: true });
+      } finally {
+        setTogglePendingKey(null);
+      }
+    },
+    [refreshDashboard],
+  );
 
   const handleAutoSyncComplete = useCallback(() => {
-    // Auto-sync met a jour SQLite (historique/trades). Les positions ouvertes
-    // affichées ici sont deja maintenues par stream tick, donc on recharge
-    // uniquement les statistiques du dashboard.
     void loadStats({ background: true });
   }, [loadStats]);
 
@@ -328,7 +339,9 @@ export default function DashboardPage() {
     async function stopTickStreams() {
       const controllers = [...positionsTickControllersRef.current.values()];
       positionsTickControllersRef.current.clear();
-      await Promise.all(controllers.map(async (controller) => controller.stop()));
+      await Promise.all(
+        controllers.map(async (controller) => controller.stop()),
+      );
     }
 
     function upsertTickEvent(
@@ -340,14 +353,17 @@ export default function DashboardPage() {
       setPositionsSources((current) => {
         const next = [...current];
         const entryIndex = next.findIndex((entry) => entry.key === key);
-        const label =
-          terminalPath === null
-            ? tr(settings.language, "Terminal MT5 actif", "Active MT5 terminal")
-            : `${tr(settings.language, "Terminal", "Terminal")} ${index + 1} — ${extractTerminalLabel(terminalPath)}`;
+        const label = buildSourceLabel(
+          settings.language,
+          terminalPath,
+          index,
+          event.accountId,
+        );
 
         const nextEntry: MT5PositionsSourceEntry = {
           key,
           terminalPath,
+          connected: true,
           label,
           result: event,
           status: derivePositionsStatus(event),
@@ -367,11 +383,17 @@ export default function DashboardPage() {
       try {
         await stopTickStreams();
 
-        const sources = await resolveTerminalSources();
+        const [sources, disconnectedKeys] = await Promise.all([
+          resolveMT5TerminalSources(),
+          getDisconnectedMT5SourceKeys(),
+        ]);
+        const connectedSources = sources.filter((terminalPath) =>
+          isMT5SourceConnected(terminalPath, disconnectedKeys),
+        );
 
-        for (let index = 0; index < sources.length; index += 1) {
-          const terminalPath = sources[index];
-          const key = sourceKey(terminalPath);
+        for (let index = 0; index < connectedSources.length; index += 1) {
+          const terminalPath = connectedSources[index];
+          const key = sourceKeyFromTerminalPath(terminalPath);
 
           try {
             const controller = await startMT5PositionsTickStream({
@@ -444,7 +466,7 @@ export default function DashboardPage() {
       cancelled = true;
       void stopTickStreams();
     };
-  }, [loadOpenPositions, settings.language]);
+  }, [connectionUpdateKey, loadOpenPositions, settings.language]);
 
   useEffect(() => {
     void refreshDashboard();
@@ -462,8 +484,8 @@ export default function DashboardPage() {
           <p className="dashboard-header__subtitle">
             {tr(
               settings.language,
-              "Statistiques calculées sur l'ensemble des trades clôturés",
-              "Statistics computed across all closed trades",
+              "Statistiques calculées sur les comptes MT5 connectés (trades clôturés)",
+              "Statistics computed from connected MT5 accounts (closed trades)",
             )}
           </p>
         </div>
@@ -561,9 +583,7 @@ export default function DashboardPage() {
               <RefreshCw
                 size={15}
                 className={
-                  positionsLoading || positionsRefreshing
-                    ? "spin"
-                    : ""
+                  positionsLoading || positionsRefreshing ? "spin" : ""
                 }
               />
             </button>
@@ -575,7 +595,34 @@ export default function DashboardPage() {
         ) : (
           positionsSources.map((source) => (
             <div key={source.key} className="dashboard-mt5-source">
-              <h3 className="dashboard-mt5-source__title">{source.label}</h3>
+              <div className="dashboard-mt5-source__header">
+                <h3 className="dashboard-mt5-source__title">{source.label}</h3>
+                <button
+                  type="button"
+                  className={source.connected ? "btn-danger" : "btn-secondary"}
+                  disabled={togglePendingKey === source.key}
+                  onClick={() => {
+                    void handleToggleSourceConnection(source);
+                  }}
+                >
+                  {togglePendingKey === source.key
+                    ? tr(settings.language, "Mise à jour…", "Updating...")
+                    : source.connected
+                      ? tr(settings.language, "Déconnecter", "Disconnect")
+                      : tr(settings.language, "Reconnecter", "Reconnect")}
+                </button>
+              </div>
+
+              {!source.connected && (
+                <p className="dashboard-mt5-source__status">
+                  {tr(
+                    settings.language,
+                    "Compte déconnecté : exclu de l'auto-sync et des statistiques.",
+                    "Disconnected account: excluded from auto-sync and statistics.",
+                  )}
+                </p>
+              )}
+
               <MT5OpenPositionsPreview
                 status={source.status}
                 result={source.result}
