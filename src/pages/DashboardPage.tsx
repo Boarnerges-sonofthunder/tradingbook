@@ -26,6 +26,7 @@ import {
 } from "react";
 import { RefreshCw, Waves } from "lucide-react";
 import { getDashboardStats } from "../services/analytics";
+import { getSetting } from "../services/settings/settingsService";
 import {
   fetchMT5Positions,
   startMT5PositionsTickStream,
@@ -62,6 +63,40 @@ function derivePositionsStatus(
 }
 
 const DASHBOARD_MT5_TICK_POLL_MS = 500;
+const MT5_TERMINAL_PATHS_SETTING_KEY = "mt5TerminalPaths";
+
+interface MT5PositionsSourceEntry {
+  key: string;
+  terminalPath: string | null;
+  label: string;
+  result: MT5PositionsResult | null;
+  status: MT5PositionsStatus;
+}
+
+function sourceKey(terminalPath: string | null): string {
+  return terminalPath ?? "__default__";
+}
+
+function parseTerminalPaths(raw: string | null): string[] {
+  if (raw == null || raw.trim() === "") return [];
+
+  const dedup = new Set<string>();
+  for (const token of raw.split(/[\r\n;,]/g)) {
+    const normalized = token.trim();
+    if (normalized !== "") {
+      dedup.add(normalized);
+    }
+  }
+
+  return [...dedup];
+}
+
+function extractTerminalLabel(path: string): string {
+  const normalized = path.replace(/\\/g, "/");
+  const segments = normalized.split("/").filter(Boolean);
+  const last = segments.length > 0 ? segments[segments.length - 1] : path;
+  return last.toLowerCase().endsWith(".exe") ? last.slice(0, -4) : last;
+}
 
 interface DashboardAutoRefreshSyncWatcherProps {
   onAutoSyncComplete: () => void;
@@ -94,15 +129,16 @@ export default function DashboardPage() {
   const [statsRefreshing, setStatsRefreshing] = useState(false);
   const [statsError, setStatsError] = useState(false);
 
-  const [positionsResult, setPositionsResult] =
-    useState<MT5PositionsResult | null>(null);
-  const [positionsStatus, setPositionsStatus] =
-    useState<MT5PositionsStatus>("loading");
+  const [positionsSources, setPositionsSources] = useState<
+    MT5PositionsSourceEntry[]
+  >([]);
+  const [positionsLoading, setPositionsLoading] = useState(true);
   const [positionsRefreshing, setPositionsRefreshing] = useState(false);
   const hasLoadedStatsRef = useRef(false);
   const hasLoadedPositionsRef = useRef(false);
-  const positionsTickControllerRef =
-    useRef<MT5PositionsTickStreamController | null>(null);
+  const positionsTickControllersRef = useRef<
+    Map<string, MT5PositionsTickStreamController>
+  >(new Map());
   const positionsTickErrorLoggedRef = useRef(false);
 
   const isRefreshing = statsRefreshing || positionsRefreshing;
@@ -138,37 +174,94 @@ export default function DashboardPage() {
     async (options?: { background?: boolean }) => {
       const isBackground = options?.background ?? false;
 
+      const configuredPaths = parseTerminalPaths(
+        await getSetting(MT5_TERMINAL_PATHS_SETTING_KEY),
+      );
+      const sources =
+        configuredPaths.length > 0 ? configuredPaths.map((path) => path) : [null];
+
       if (!hasLoadedPositionsRef.current && !isBackground) {
-        setPositionsStatus("loading");
+        setPositionsLoading(true);
+        startTransition(() => {
+          setPositionsSources(
+            sources.map((terminalPath, index) => ({
+              key: sourceKey(terminalPath),
+              terminalPath,
+              label:
+                terminalPath === null
+                  ? tr(
+                      settings.language,
+                      "Terminal MT5 actif",
+                      "Active MT5 terminal",
+                    )
+                  : `${tr(settings.language, "Terminal", "Terminal")} ${index + 1} — ${extractTerminalLabel(terminalPath)}`,
+              result: null,
+              status: "loading",
+            })),
+          );
+        });
       } else {
         setPositionsRefreshing(true);
       }
 
       try {
-        const result = await fetchMT5Positions();
+        const results = await Promise.all(
+          sources.map(async (terminalPath, index) => {
+            const result = await fetchMT5Positions({
+              terminalPath: terminalPath ?? undefined,
+            });
+
+            return {
+              key: sourceKey(terminalPath),
+              terminalPath,
+              label:
+                terminalPath === null
+                  ? tr(
+                      settings.language,
+                      "Terminal MT5 actif",
+                      "Active MT5 terminal",
+                    )
+                  : `${tr(settings.language, "Terminal", "Terminal")} ${index + 1} — ${extractTerminalLabel(terminalPath)}`,
+              result,
+              status: derivePositionsStatus(result),
+            } satisfies MT5PositionsSourceEntry;
+          }),
+        );
+
         startTransition(() => {
-          setPositionsResult(result);
-          setPositionsStatus(derivePositionsStatus(result));
+          setPositionsSources(results);
         });
         hasLoadedPositionsRef.current = true;
       } catch (err) {
         console.error("[DashboardPage] Erreur chargement positions MT5 :", err);
         startTransition(() => {
-          setPositionsResult({
-            success: false,
-            positions: [],
-            totalPositions: 0,
-            errorCode: "UNKNOWN_MT5_ERROR",
-            message: "Impossible de lire les positions ouvertes MT5.",
-          });
-          setPositionsStatus("error");
+          setPositionsSources([
+            {
+              key: sourceKey(null),
+              terminalPath: null,
+              label: tr(
+                settings.language,
+                "Terminal MT5 actif",
+                "Active MT5 terminal",
+              ),
+              result: {
+                success: false,
+                positions: [],
+                totalPositions: 0,
+                errorCode: "UNKNOWN_MT5_ERROR",
+                message: "Impossible de lire les positions ouvertes MT5.",
+              },
+              status: "error",
+            },
+          ]);
         });
         hasLoadedPositionsRef.current = true;
       } finally {
+        setPositionsLoading(false);
         setPositionsRefreshing(false);
       }
     },
-    [],
+    [settings.language],
   );
 
   const refreshDashboard = useCallback(
@@ -205,60 +298,113 @@ export default function DashboardPage() {
   useEffect(() => {
     let cancelled = false;
 
-    async function stopTickStream() {
-      if (positionsTickControllerRef.current === null) {
-        return;
-      }
-
-      const controller = positionsTickControllerRef.current;
-      positionsTickControllerRef.current = null;
-      await controller.stop();
+    async function stopTickStreams() {
+      const controllers = [...positionsTickControllersRef.current.values()];
+      positionsTickControllersRef.current.clear();
+      await Promise.all(controllers.map(async (controller) => controller.stop()));
     }
 
-    async function startTickStream() {
-      try {
-        await stopTickStream();
+    function upsertTickEvent(
+      key: string,
+      terminalPath: string | null,
+      event: MT5PositionsResult,
+      index: number,
+    ) {
+      setPositionsSources((current) => {
+        const next = [...current];
+        const entryIndex = next.findIndex((entry) => entry.key === key);
+        const label =
+          terminalPath === null
+            ? tr(settings.language, "Terminal MT5 actif", "Active MT5 terminal")
+            : `${tr(settings.language, "Terminal", "Terminal")} ${index + 1} — ${extractTerminalLabel(terminalPath)}`;
 
-        const controller = await startMT5PositionsTickStream({
-          tickPollMs: DASHBOARD_MT5_TICK_POLL_MS,
-          onTick: (event) => {
-            if (cancelled) return;
-            startTransition(() => {
-              setPositionsResult(event);
-              setPositionsStatus(derivePositionsStatus(event));
-            });
-            hasLoadedPositionsRef.current = true;
+        const nextEntry: MT5PositionsSourceEntry = {
+          key,
+          terminalPath,
+          label,
+          result: event,
+          status: derivePositionsStatus(event),
+        };
 
-            if (!event.success && !positionsTickErrorLoggedRef.current) {
-              console.error(
-                "[DashboardPage] Erreur stream tick positions MT5 :",
-                event.message,
-              );
-              positionsTickErrorLoggedRef.current = true;
-            }
-
-            if (event.success) {
-              positionsTickErrorLoggedRef.current = false;
-            }
-          },
-          onFatalError: (message) => {
-            if (cancelled) return;
-            console.error(
-              "[DashboardPage] Stream tick MT5 interrompu :",
-              message,
-            );
-          },
-          onClose: () => {
-            if (cancelled) return;
-          },
-        });
-
-        if (cancelled) {
-          await controller.stop();
-          return;
+        if (entryIndex >= 0) {
+          next[entryIndex] = nextEntry;
+          return next;
         }
 
-        positionsTickControllerRef.current = controller;
+        next.push(nextEntry);
+        return next;
+      });
+    }
+
+    async function startTickStreams() {
+      try {
+        await stopTickStreams();
+
+        const configuredPaths = parseTerminalPaths(
+          await getSetting(MT5_TERMINAL_PATHS_SETTING_KEY),
+        );
+        const sources =
+          configuredPaths.length > 0
+            ? configuredPaths.map((path) => path)
+            : [null];
+
+        for (let index = 0; index < sources.length; index += 1) {
+          const terminalPath = sources[index];
+          const key = sourceKey(terminalPath);
+
+          try {
+            const controller = await startMT5PositionsTickStream({
+              tickPollMs: DASHBOARD_MT5_TICK_POLL_MS,
+              terminalPath: terminalPath ?? undefined,
+              onTick: (event) => {
+                if (cancelled) return;
+                startTransition(() => {
+                  upsertTickEvent(key, terminalPath, event, index);
+                });
+                hasLoadedPositionsRef.current = true;
+
+                if (!event.success && !positionsTickErrorLoggedRef.current) {
+                  console.error(
+                    "[DashboardPage] Erreur stream tick positions MT5 :",
+                    event.message,
+                  );
+                  positionsTickErrorLoggedRef.current = true;
+                }
+
+                if (event.success) {
+                  positionsTickErrorLoggedRef.current = false;
+                }
+              },
+              onFatalError: (message) => {
+                if (cancelled) return;
+                console.error(
+                  "[DashboardPage] Stream tick MT5 interrompu :",
+                  message,
+                );
+              },
+              onClose: () => {
+                if (cancelled) return;
+              },
+            });
+
+            if (cancelled) {
+              await controller.stop();
+              return;
+            }
+
+            positionsTickControllersRef.current.set(key, controller);
+          } catch (err) {
+            if (cancelled) return;
+
+            console.error(
+              "[DashboardPage] Impossible de demarrer stream source MT5 :",
+              err,
+            );
+
+            // Fallback source par source: on force un refresh ponctuel.
+            void loadOpenPositions({ background: true });
+          }
+        }
       } catch (err) {
         if (cancelled) return;
         console.error(
@@ -266,18 +412,18 @@ export default function DashboardPage() {
           err,
         );
 
-        // Fallback: garder comportement historique si stream indisponible.
+        // Fallback global: garder comportement historique si stream indisponible.
         void loadOpenPositions({ background: true });
       }
     }
 
-    void startTickStream();
+    void startTickStreams();
 
     return () => {
       cancelled = true;
-      void stopTickStream();
+      void stopTickStreams();
     };
-  }, [loadOpenPositions]);
+  }, [loadOpenPositions, settings.language]);
 
   useEffect(() => {
     void refreshDashboard();
@@ -379,7 +525,7 @@ export default function DashboardPage() {
             <button
               className="dashboard-header__refresh"
               onClick={handleRefreshPositions}
-              disabled={positionsStatus === "loading" || positionsRefreshing}
+              disabled={positionsLoading || positionsRefreshing}
               title={tr(
                 settings.language,
                 "Actualiser les positions ouvertes",
@@ -394,7 +540,7 @@ export default function DashboardPage() {
               <RefreshCw
                 size={15}
                 className={
-                  positionsStatus === "loading" || positionsRefreshing
+                  positionsLoading || positionsRefreshing
                     ? "spin"
                     : ""
                 }
@@ -403,10 +549,19 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <MT5OpenPositionsPreview
-          status={positionsStatus}
-          result={positionsResult}
-        />
+        {positionsSources.length === 0 ? (
+          <MT5OpenPositionsPreview status="idle" result={null} />
+        ) : (
+          positionsSources.map((source) => (
+            <div key={source.key} className="dashboard-mt5-source">
+              <h3 className="dashboard-mt5-source__title">{source.label}</h3>
+              <MT5OpenPositionsPreview
+                status={source.status}
+                result={source.result}
+              />
+            </div>
+          ))
+        )}
       </section>
     </div>
   );

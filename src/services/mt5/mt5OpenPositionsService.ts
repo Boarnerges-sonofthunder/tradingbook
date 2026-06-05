@@ -44,6 +44,11 @@ const logger = createLogger("mt5-positions");
 
 const BRIDGE_SCRIPT_NAME = "mt5_bridge.py";
 
+export interface FetchMT5PositionsOptions {
+  /** Chemin terminal MT5 cible pour environnement multi-instance. */
+  terminalPath?: string;
+}
+
 /** Timeout pour la lecture des positions (15 s — rapide, pas de plage de dates). */
 const POSITIONS_TIMEOUT_MS = 15_000;
 
@@ -179,7 +184,9 @@ function parsePositionsOutput(stdout: string): MT5PositionsResult {
  *
  * @returns MT5PositionsResult avec les positions ouvertes ou une erreur typée.
  */
-export async function fetchMT5Positions(): Promise<MT5PositionsResult> {
+export async function fetchMT5Positions(
+  options?: FetchMT5PositionsOptions,
+): Promise<MT5PositionsResult> {
   logger.debug("fetchMT5Positions() démarré — mode positions");
 
   // ── Résoudre le chemin du script ───────────────────────────────────────
@@ -196,6 +203,10 @@ export async function fetchMT5Positions(): Promise<MT5PositionsResult> {
   }
 
   const args = [scriptPath, "--mode", "positions"];
+  const terminalPath = options?.terminalPath?.trim();
+  if (terminalPath) {
+    args.push("--terminal-path", terminalPath);
+  }
 
   // ── Timeout via Promise.race ───────────────────────────────────────────
   const timeoutPromise = new Promise<MT5PositionsResult>((resolve) =>

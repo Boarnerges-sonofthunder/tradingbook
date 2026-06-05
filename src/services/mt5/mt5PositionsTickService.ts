@@ -28,6 +28,8 @@ export interface MT5PositionsTickEvent extends MT5PositionsResult {
 
 export interface StartMT5PositionsTickStreamOptions {
   tickPollMs: number;
+  /** Chemin terminal MT5 cible pour environnement multi-instance. */
+  terminalPath?: string;
   onTick: (event: MT5PositionsTickEvent) => void;
   onFatalError?: (message: string) => void;
   onClose?: (payload: { code: number | null; signal: number | null }) => void;
@@ -187,6 +189,10 @@ export async function startMT5PositionsTickStream(
     "--tick-poll-ms",
     String(normalizedPollMs),
   ];
+  const terminalPath = options.terminalPath?.trim();
+  if (terminalPath) {
+    args.push("--terminal-path", terminalPath);
+  }
 
   const commandOrder = getMT5PythonCommandOrder(preferredPythonCommand);
   for (const commandName of commandOrder) {

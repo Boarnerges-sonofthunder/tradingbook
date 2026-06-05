@@ -73,6 +73,19 @@ def build_error(error_code: str, message: str) -> dict:
     }
 
 
+def initialize_mt5(mt5, terminal_path: str | None):
+    """
+    Initialise MT5 en ciblant optionnellement un terminal precis.
+
+    Si terminal_path est fourni, on passe explicitement path=... a l'API
+    MetaTrader5 pour eviter les ambiguïtés quand plusieurs terminaux existent.
+    """
+    path = (terminal_path or "").strip()
+    if path:
+        return mt5.initialize(path=path)
+    return mt5.initialize()
+
+
 def dt_to_iso(dt: datetime.datetime) -> str:
     """
     Convertit un datetime (avec ou sans timezone) en chaîne ISO 8601 UTC.
@@ -225,7 +238,7 @@ def position_type_str(type_int: int) -> str:
 
 # ─── Mode "check" ─────────────────────────────────────────────────────────────
 
-def check_mt5_connection() -> dict:
+def check_mt5_connection(terminal_path: str | None = None) -> dict:
     """
     Vérifie la disponibilité du terminal MetaTrader 5.
 
@@ -250,7 +263,7 @@ def check_mt5_connection() -> dict:
         )
 
     # ── Étape 2 : Initialiser la connexion au terminal MT5 ───────────────
-    if not mt5.initialize():
+    if not initialize_mt5(mt5, terminal_path):
         last_error = mt5.last_error()
         error_detail = f" (code MT5 : {last_error[0]}, {last_error[1]})" if last_error else ""
         return build_error(
@@ -528,7 +541,12 @@ def serialize_deal(
     }
 
 
-def get_mt5_history(period: str | None, from_date: str | None, to_date: str | None) -> dict:
+def get_mt5_history(
+    period: str | None,
+    from_date: str | None,
+    to_date: str | None,
+    terminal_path: str | None = None,
+) -> dict:
     """
     Lit l'historique des deals MT5 sur une période donnée.
 
@@ -563,7 +581,7 @@ def get_mt5_history(period: str | None, from_date: str | None, to_date: str | No
         )
 
     # ── Initialiser la connexion ──────────────────────────────────────────
-    if not mt5.initialize():
+    if not initialize_mt5(mt5, terminal_path):
         last_error = mt5.last_error()
         detail = f" (code : {last_error[0]}, {last_error[1]})" if last_error else ""
         return build_error(
@@ -744,7 +762,7 @@ def serialize_position(pos, server_offset_seconds: int = 0) -> dict:
     }
 
 
-def get_mt5_positions() -> dict:
+def get_mt5_positions(terminal_path: str | None = None) -> dict:
     """
     Lit les positions actuellement ouvertes dans MetaTrader 5.
 
@@ -778,7 +796,7 @@ def get_mt5_positions() -> dict:
         }
 
     # ── Initialiser la connexion ──────────────────────────────────────────
-    if not mt5.initialize():
+    if not initialize_mt5(mt5, terminal_path):
         last_error = mt5.last_error()
         detail = f" (code : {last_error[0]}, {last_error[1]})" if last_error else ""
         return {
@@ -951,7 +969,10 @@ def build_positions_snapshot_payload(
     return payload, signature
 
 
-def get_mt5_positions_stream(tick_poll_ms: int = 250) -> int:
+def get_mt5_positions_stream(
+    tick_poll_ms: int = 250,
+    terminal_path: str | None = None,
+) -> int:
     """
     Stream NDJSON des positions ouvertes.
 
@@ -983,7 +1004,7 @@ def get_mt5_positions_stream(tick_poll_ms: int = 250) -> int:
         )
         return 1
 
-    if not mt5.initialize():
+    if not initialize_mt5(mt5, terminal_path):
         last_error = mt5.last_error()
         detail = f" (code : {last_error[0]}, {last_error[1]})" if last_error else ""
         emit(
@@ -1169,6 +1190,7 @@ def get_mt5_candles(
     from_date: str | None,
     to_date: str | None,
     max_bars: int | None,
+    terminal_path: str | None = None,
 ) -> dict:
     """
     Lit chandelles OHLC MT5 sur plage temporelle.
@@ -1229,7 +1251,7 @@ def get_mt5_candles(
             "message": "La bibliothèque Python MetaTrader5 n'est pas installée.",
         }
 
-    if not mt5.initialize():
+    if not initialize_mt5(mt5, terminal_path):
         last_error = mt5.last_error()
         detail = f" (code : {last_error[0]}, {last_error[1]})" if last_error else ""
         return {
@@ -1392,6 +1414,12 @@ def main() -> None:
         type=int,
         help="Frequence de polling tick en millisecondes pour --mode positions-stream",
     )
+    parser.add_argument(
+        "--terminal-path",
+        dest="terminal_path",
+        default=None,
+        help="Chemin terminal MT5 cible (optionnel, utile en multi-instance)",
+    )
 
     try:
         args, _ = parser.parse_known_args()
@@ -1405,21 +1433,26 @@ def main() -> None:
             timeframe="M5",
             max_bars=2000,
             tick_poll_ms=250,
+            terminal_path=None,
         )
 
     # ── Dispatch selon le mode ────────────────────────────────────────────
     if args.mode == "check":
-        result = check_mt5_connection()
+        result = check_mt5_connection(args.terminal_path)
     elif args.mode == "history":
         result = get_mt5_history(
             period=args.period,
             from_date=args.from_date,
             to_date=args.to_date,
+            terminal_path=args.terminal_path,
         )
     elif args.mode == "positions":
-        result = get_mt5_positions()
+        result = get_mt5_positions(args.terminal_path)
     elif args.mode == "positions-stream":
-        exit_code = get_mt5_positions_stream(args.tick_poll_ms)
+        exit_code = get_mt5_positions_stream(
+            args.tick_poll_ms,
+            args.terminal_path,
+        )
         sys.exit(exit_code)
     elif args.mode == "candles":
         result = get_mt5_candles(
@@ -1428,6 +1461,7 @@ def main() -> None:
             from_date=args.from_date,
             to_date=args.to_date,
             max_bars=args.max_bars,
+            terminal_path=args.terminal_path,
         )
     else:
         result = build_error("SCRIPT_ERROR", f"Mode inconnu : {args.mode}")
