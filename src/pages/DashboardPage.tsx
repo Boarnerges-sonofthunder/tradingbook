@@ -30,6 +30,7 @@ import { getSetting } from "../services/settings/settingsService";
 import {
   fetchMT5Positions,
   startMT5PositionsTickStream,
+  detectMT5Terminals,
   type MT5PositionsTickStreamController,
 } from "../services/mt5";
 import DashboardStatsGrid from "../features/dashboard/components/DashboardStatsGrid";
@@ -96,6 +97,36 @@ function extractTerminalLabel(path: string): string {
   const segments = normalized.split("/").filter(Boolean);
   const last = segments.length > 0 ? segments[segments.length - 1] : path;
   return last.toLowerCase().endsWith(".exe") ? last.slice(0, -4) : last;
+}
+
+/**
+ * Résout la liste des chemins de terminaux MT5 à interroger.
+ *
+ * Priorité :
+ *   1. Auto-détection PowerShell (processus terminal64.exe en cours)
+ *   2. Config manuelle dans Settings (mt5TerminalPaths) si détection vide
+ *   3. null (terminal par défaut) si tout est vide
+ */
+async function resolveTerminalSources(): Promise<Array<string | null>> {
+  // Tentative auto-détection
+  try {
+    const detected = await detectMT5Terminals();
+    if (detected.success && detected.totalTerminals > 0) {
+      return detected.terminals.map((t) => t.path);
+    }
+  } catch {
+    // Détection non critique — fallback silencieux
+  }
+
+  // Fallback : config manuelle
+  const rawManual = await getSetting(MT5_TERMINAL_PATHS_SETTING_KEY);
+  const manual = parseTerminalPaths(rawManual);
+  if (manual.length > 0) {
+    return manual;
+  }
+
+  // Dernier fallback : terminal par défaut (comportement original)
+  return [null];
 }
 
 interface DashboardAutoRefreshSyncWatcherProps {
@@ -174,11 +205,7 @@ export default function DashboardPage() {
     async (options?: { background?: boolean }) => {
       const isBackground = options?.background ?? false;
 
-      const configuredPaths = parseTerminalPaths(
-        await getSetting(MT5_TERMINAL_PATHS_SETTING_KEY),
-      );
-      const sources =
-        configuredPaths.length > 0 ? configuredPaths.map((path) => path) : [null];
+      const sources = await resolveTerminalSources();
 
       if (!hasLoadedPositionsRef.current && !isBackground) {
         setPositionsLoading(true);
@@ -340,13 +367,7 @@ export default function DashboardPage() {
       try {
         await stopTickStreams();
 
-        const configuredPaths = parseTerminalPaths(
-          await getSetting(MT5_TERMINAL_PATHS_SETTING_KEY),
-        );
-        const sources =
-          configuredPaths.length > 0
-            ? configuredPaths.map((path) => path)
-            : [null];
+        const sources = await resolveTerminalSources();
 
         for (let index = 0; index < sources.length; index += 1) {
           const terminalPath = sources[index];

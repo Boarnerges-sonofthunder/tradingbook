@@ -31,6 +31,11 @@ export {
 export { runMT5Sync } from "./mt5SyncService";
 export type { MT5SyncOptions } from "./mt5SyncService";
 export {
+  detectMT5Terminals,
+  type MT5TerminalInfo,
+  type MT5DetectTerminalsResult,
+} from "./mt5TerminalDetectionService";
+export {
   startAutoRefresh,
   stopAutoRefresh,
   isAutoRefreshActive,

@@ -1356,6 +1356,93 @@ def get_mt5_candles(
         mt5.shutdown()
 
 
+# ─── Mode "detect" ──────────────────────────────────────────────────────────
+
+def detect_mt5_terminals() -> dict:
+    """
+    Détecte tous les terminaux MT5 (terminal64.exe) ouverts sur le système.
+
+    Utilise PowerShell pour lire les chemins exacts des processus en cours.
+    Aucune connexion MT5 n'est établie — lecture seule des processus Windows.
+
+    Retourne un dict JSON avec :
+        success        — bool
+        terminals      — liste de { path, pid }
+        totalTerminals — nombre de terminaux détectés
+        message        — message descriptif
+    """
+    try:
+        import subprocess  # noqa: PLC0415
+
+        # PowerShell : liste les processus terminal64, retourne chemin + PID.
+        # -ErrorAction SilentlyContinue : pas d'erreur si aucun processus trouvé.
+        ps_cmd = (
+            "Get-Process -Name terminal64 -ErrorAction SilentlyContinue "
+            "| Select-Object Id,@{N='Path';E={$_.MainModule.FileName}} "
+            "| ConvertTo-Json -Compress"
+        )
+        result = subprocess.run(  # noqa: S603
+            [
+                "powershell",
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                ps_cmd,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        stdout = result.stdout.strip()
+
+        if not stdout:
+            return {
+                "success": True,
+                "terminals": [],
+                "totalTerminals": 0,
+                "message": "Aucun terminal MT5 (terminal64.exe) détecté.",
+            }
+
+        raw = json.loads(stdout)
+
+        # PowerShell retourne un dict si un seul résultat, liste sinon.
+        if isinstance(raw, dict):
+            raw = [raw]
+
+        terminals = []
+        for entry in raw:
+            path = str(entry.get("Path") or "").strip()
+            pid = int(entry.get("Id") or 0)
+            if path:
+                terminals.append({"path": path, "pid": pid})
+
+        count = len(terminals)
+        return {
+            "success": True,
+            "terminals": terminals,
+            "totalTerminals": count,
+            "message": f"{count} terminal(s) MT5 détecté(s).",
+        }
+
+    except subprocess.TimeoutExpired:  # noqa: F821
+        return {
+            "success": False,
+            "terminals": [],
+            "totalTerminals": 0,
+            "errorCode": "TIMEOUT",
+            "message": "Délai dépassé lors de la détection des terminaux MT5.",
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "success": False,
+            "terminals": [],
+            "totalTerminals": 0,
+            "errorCode": "SCRIPT_ERROR",
+            "message": f"Erreur lors de la détection des terminaux MT5 : {exc}",
+        }
+
+
 # ─── Point d'entrée principal ─────────────────────────────────────────────────
 
 def main() -> None:
@@ -1367,8 +1454,8 @@ def main() -> None:
     parser.add_argument(
         "--mode",
         default="check",
-        choices=["check", "history", "positions", "positions-stream", "candles"],
-        help="Mode : 'check', 'history', 'positions', 'positions-stream' ou 'candles'",
+        choices=["check", "history", "positions", "positions-stream", "candles", "detect"],
+        help="Mode : 'check', 'history', 'positions', 'positions-stream', 'candles' ou 'detect'",
     )
     parser.add_argument(
         "--period",
@@ -1434,7 +1521,7 @@ def main() -> None:
             max_bars=2000,
             tick_poll_ms=250,
             terminal_path=None,
-        )
+        )  # fmt: skip
 
     # ── Dispatch selon le mode ────────────────────────────────────────────
     if args.mode == "check":
@@ -1463,6 +1550,8 @@ def main() -> None:
             max_bars=args.max_bars,
             terminal_path=args.terminal_path,
         )
+    elif args.mode == "detect":
+        result = detect_mt5_terminals()
     else:
         result = build_error("SCRIPT_ERROR", f"Mode inconnu : {args.mode}")
 
