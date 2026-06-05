@@ -88,6 +88,7 @@ export interface MT5SyncOptions {
 // ─── Constante ─────────────────────────────────────────────
 
 const MAX_ERROR_MESSAGES = 20;
+const PRICE_CHANGE_TOLERANCE = 0.0000001;
 
 // ─── Fonction principale ───────────────────────────────────
 
@@ -183,6 +184,78 @@ export async function runMT5Sync(
   logger.debug(
     `MT5 — ${deals.length} deals, ${positionsList.length} positions ouvertes`,
   );
+
+  const errorMessages: string[] = [];
+
+  // ── Étape 2.5 : Fermer les trades existants via deals "exit-only" ──
+  // Cas visé : deal d'entrée hors période demandée, deal de sortie dans la période.
+  // Sans ce fallback, le trade local peut rester "open" avec closedAt/exitPrice vides.
+  const exitOnlyClosures = buildExitOnlyClosureCandidates(deals);
+  let fallbackCloseUpdates = 0;
+  let fallbackCloseErrors = 0;
+
+  if (exitOnlyClosures.length > 0) {
+    try {
+      const existing = await findTradesByExternalIds(
+        exitOnlyClosures.map((item) => item.externalId),
+      );
+
+      for (const closure of exitOnlyClosures) {
+        const matches = existing.filter(
+          (trade) => trade.externalId === closure.externalId,
+        );
+
+        // Priorité : trade encore ouvert pour ce positionId MT5.
+        const target =
+          matches.find((trade) => trade.status !== "closed") ?? matches[0] ?? null;
+        if (!target) continue;
+
+        const updateData: {
+          status?: "closed";
+          closedAt?: string;
+          exitPrice?: number;
+        } = {};
+        if (target.status !== "closed") {
+          updateData.status = "closed";
+        }
+        if (target.closedAt !== closure.closedAt) {
+          updateData.closedAt = closure.closedAt;
+        }
+
+        const currentExit = target.exitPrice;
+        const needsExitUpdate =
+          currentExit === null ||
+          Math.abs(currentExit - closure.exitPrice) > PRICE_CHANGE_TOLERANCE;
+        if (needsExitUpdate) {
+          updateData.exitPrice = closure.exitPrice;
+        }
+
+        if (Object.keys(updateData).length === 0) continue;
+
+        try {
+          await updateTradeById(target.id, updateData);
+          fallbackCloseUpdates++;
+          logger.debug(
+            `Trade ${closure.externalId} fermé via fallback exit-only (id=${target.id})`,
+          );
+        } catch (err) {
+          fallbackCloseErrors++;
+          const msg = `Erreur fallback fermeture ${closure.externalId} (id=${target.id}) : ${String(err)}`;
+          logger.error(msg);
+          if (errorMessages.length < MAX_ERROR_MESSAGES) {
+            errorMessages.push(msg);
+          }
+        }
+      }
+    } catch (err) {
+      fallbackCloseErrors++;
+      const msg = `Erreur fallback exit-only : ${String(err)}`;
+      logger.error(msg);
+      if (errorMessages.length < MAX_ERROR_MESSAGES) {
+        errorMessages.push(msg);
+      }
+    }
+  }
 
   // ── Résoudre ou créer le compte trading lié à cette sync ─────
   let resolvedTradingAccountId: number | null = null;
@@ -291,7 +364,6 @@ export async function runMT5Sync(
 
   const { toInsert, toUpdate, alreadyExisting, probableDuplicates, invalid } =
     detectionResult;
-  const errorMessages: string[] = [];
   const skipped = alreadyExisting.length + probableDuplicates.length + invalid.length;
 
   // ── Étape 7 : Insérer les nouveaux trades ─────────────────────
@@ -361,7 +433,7 @@ export async function runMT5Sync(
   }
 
   // ── Étape 8 : Mettre à jour les trades existants ──────────────
-  let updated = recoveredAsUpdate;
+  let updated = recoveredAsUpdate + fallbackCloseUpdates;
   let updateErrors = 0;
 
   for (const candidate of toUpdate) {
@@ -388,7 +460,7 @@ export async function runMT5Sync(
     }
   }
 
-  const totalErrors = insertErrors + updateErrors;
+  const totalErrors = insertErrors + updateErrors + fallbackCloseErrors;
   if (inserted > 0 || updated > 0) {
     // Le cache local reste tres court, mais la sync MT5 ecrit en direct
     // dans SQLite : on invalide aussitot les lectures derivees.
@@ -567,6 +639,73 @@ export async function runMT5Sync(
 function isUniqueConstraintError(error: unknown): boolean {
   const message = String(error).toLowerCase();
   return message.includes("unique constraint failed");
+}
+
+interface ExitOnlyClosureCandidate {
+  externalId: string;
+  closedAt: string;
+  exitPrice: number;
+}
+
+function buildExitOnlyClosureCandidates(
+  deals: Array<{
+    positionId: number;
+    type: string;
+    entry: string;
+    time: string;
+    price: number;
+  }>,
+): ExitOnlyClosureCandidate[] {
+  const byPosition = new Map<
+    number,
+    {
+      hasEntry: boolean;
+      exits: Array<{ time: string; price: number }>;
+    }
+  >();
+
+  for (const deal of deals) {
+    if (deal.positionId <= 0) continue;
+    if (deal.type !== "buy" && deal.type !== "sell") continue;
+
+    let state = byPosition.get(deal.positionId);
+    if (!state) {
+      state = { hasEntry: false, exits: [] };
+      byPosition.set(deal.positionId, state);
+    }
+
+    if (deal.entry === "in") {
+      state.hasEntry = true;
+      continue;
+    }
+
+    if (
+      deal.entry === "out" ||
+      deal.entry === "inout" ||
+      deal.entry === "out_by"
+    ) {
+      state.exits.push({ time: deal.time, price: deal.price });
+    }
+  }
+
+  const results: ExitOnlyClosureCandidate[] = [];
+
+  for (const [positionId, state] of byPosition.entries()) {
+    if (state.hasEntry || state.exits.length === 0) continue;
+
+    state.exits.sort(
+      (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime(),
+    );
+    const latestExit = state.exits[state.exits.length - 1];
+
+    results.push({
+      externalId: `mt5_pos_${positionId}`,
+      closedAt: latestExit.time,
+      exitPrice: latestExit.price,
+    });
+  }
+
+  return results;
 }
 
 function resolveReplayMarketDataRange(params: {
