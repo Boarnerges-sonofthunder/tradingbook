@@ -38,7 +38,10 @@ import {
 
 // ─── Helpers d'affichage ──────────────────────────────────
 
-function formatDate(iso: string | null, settings: ReturnType<typeof useUserSettings>): string {
+function formatDate(
+  iso: string | null,
+  settings: ReturnType<typeof useUserSettings>,
+): string {
   return formatDateTimeForSettings(iso, settings, "—");
 }
 
@@ -82,7 +85,8 @@ function computeFallbackRrr(
   riskAmount: number | null,
   rewardAmount: number | null,
 ): number | null {
-  if (riskAmount === null || rewardAmount === null || riskAmount <= 0) return null;
+  if (riskAmount === null || rewardAmount === null || riskAmount <= 0)
+    return null;
   return Math.round((rewardAmount / riskAmount) * 100) / 100;
 }
 
