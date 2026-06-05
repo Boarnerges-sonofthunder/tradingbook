@@ -11,6 +11,21 @@ export interface AIModelMessage {
   content: string;
 }
 
+const MAX_PROMPT_HABITS = 8;
+const MAX_PROMPT_EMOTIONS = 6;
+const MAX_PROMPT_ERRORS = 8;
+const MAX_PROMPT_TRADE_NOTES = 6;
+const MAX_PROMPT_TRADE_MISTAKES = 6;
+const MAX_PROMPT_STRATEGIES = 6;
+const MAX_PROMPT_SESSIONS = 6;
+const MAX_PROMPT_SYMBOLS = 8;
+const MAX_PROMPT_RECENT_TRADES = 16;
+const MAX_NOTE_CONTENT_LENGTH = 220;
+const MAX_MISTAKE_NOTES_LENGTH = 160;
+const MAX_HISTORY_MESSAGES = 10;
+const MAX_HISTORY_MESSAGE_LENGTH = 500;
+const MAX_HISTORY_TOTAL_CHARS = 4000;
+
 const FORBIDDEN_PATTERNS = [
   "achete",
   "achète",
@@ -50,6 +65,51 @@ function buildMemoryPromptSection(
   ];
 }
 
+function truncateText(value: string, maxLength: number): string {
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+function buildPromptScopedExport(exportData: AIAnalyticsExport): Record<string, unknown> {
+  return {
+    generatedAt: exportData.generatedAt,
+    context: exportData.context,
+    timeContext: exportData.timeContext,
+    analytics: exportData.analytics,
+    pnl: exportData.pnl,
+    drawdown: exportData.drawdown,
+    riskManagement: exportData.riskManagement,
+    habits: exportData.habits.slice(0, MAX_PROMPT_HABITS),
+    emotions: exportData.emotions.slice(0, MAX_PROMPT_EMOTIONS),
+    errors: exportData.errors.slice(0, MAX_PROMPT_ERRORS),
+    tradeNotes: exportData.tradeNotes.slice(0, MAX_PROMPT_TRADE_NOTES).map((note) => ({
+      tradeId: note.tradeId,
+      tradeSymbol: note.tradeSymbol,
+      content: truncateText(note.content, MAX_NOTE_CONTENT_LENGTH),
+      updatedAt: note.updatedAt,
+    })),
+    tradeMistakes: exportData.tradeMistakes
+      .slice(0, MAX_PROMPT_TRADE_MISTAKES)
+      .map((item) => ({
+        tradeId: item.tradeId,
+        tradeSymbol: item.tradeSymbol,
+        mistakeName: item.mistakeName,
+        notes: item.notes
+          ? truncateText(item.notes, MAX_MISTAKE_NOTES_LENGTH)
+          : null,
+        createdAt: item.createdAt,
+      })),
+    strategies: exportData.strategies.slice(0, MAX_PROMPT_STRATEGIES),
+    sessions: exportData.sessions.slice(0, MAX_PROMPT_SESSIONS),
+    symbols: exportData.symbols.slice(0, MAX_PROMPT_SYMBOLS),
+    recentClosedTrades: (exportData.recentClosedTrades ?? []).slice(
+      0,
+      MAX_PROMPT_RECENT_TRADES,
+    ),
+    limitations: exportData.limitations,
+  };
+}
+
 export function buildAISystemPrompt(
   exportData: AIAnalyticsExport,
   memory?: AIMemoryState | null,
@@ -70,7 +130,7 @@ export function buildAISystemPrompt(
     "Si utilisateur te demande explicitement de retenir une information durable, confirme UNIQUEMENT par une phrase courte du type 'Noté, je retiens ça.' ou 'Mémorisé.' — NE JAMAIS relister ni réécrire le contenu des notes, émotions ou informations dans ta réponse. La mémoire se gère en silence.",
     ...buildMemoryPromptSection(memory, scope),
     "Contexte analytics JSON:",
-    JSON.stringify(exportData),
+    JSON.stringify(buildPromptScopedExport(exportData)),
     "Limitations sandbox:",
     AI_SANDBOX_LIMITATIONS.join(" | "),
   ].join("\n");
@@ -97,10 +157,27 @@ export function buildConversationForModel(
   history: AIChatMessage[],
   userPrompt: string,
 ): AIModelMessage[] {
-  const recentHistory = history.slice(-10).map((message) => ({
-    role: message.role,
-    content: message.content,
-  })) as AIModelMessage[];
+  const recentHistorySource = history.slice(-MAX_HISTORY_MESSAGES);
+  const recentHistory: AIModelMessage[] = [];
+  let historyChars = 0;
+
+  for (let index = recentHistorySource.length - 1; index >= 0; index -= 1) {
+    const message = recentHistorySource[index];
+    const trimmedContent = truncateText(
+      message.content,
+      MAX_HISTORY_MESSAGE_LENGTH,
+    );
+    const nextSize = historyChars + trimmedContent.length;
+    if (recentHistory.length > 0 && nextSize > MAX_HISTORY_TOTAL_CHARS) {
+      continue;
+    }
+
+    recentHistory.unshift({
+      role: message.role,
+      content: trimmedContent,
+    });
+    historyChars = nextSize;
+  }
 
   return [
     { role: "system", content: systemPrompt },
