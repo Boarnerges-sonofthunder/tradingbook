@@ -182,6 +182,15 @@ function isLocalTransportFailure(error: unknown): boolean {
   );
 }
 
+function isLocalTimeoutFailure(error: unknown): boolean {
+  const message = getErrorMessage(error).toLowerCase();
+  return (
+    message.includes("timed out") ||
+    message.includes("timeout") ||
+    message.includes("deadline has elapsed")
+  );
+}
+
 function buildLocalAICandidateEndpoints(endpoint: string): string[] {
   const candidates = new Set<string>();
   candidates.add(endpoint);
@@ -390,6 +399,7 @@ async function callAIModel(
   if (isLocalAIEndpoint(endpoint)) {
     const localCandidates = buildLocalAICandidateEndpoints(endpoint);
     let lastTransportError: unknown = null;
+    let seenTimeout = false;
 
     for (const localEndpoint of localCandidates) {
       let localResponse: LocalAIHttpResponse;
@@ -406,6 +416,9 @@ async function callAIModel(
       } catch (error) {
         if (isLocalTransportFailure(error)) {
           lastTransportError = error;
+          if (isLocalTimeoutFailure(error)) {
+            seenTimeout = true;
+          }
           logger.warn("Transport IA locale indisponible, tentative endpoint suivant", {
             endpoint: summarizeAIEndpoint(localEndpoint),
             model,
@@ -454,6 +467,11 @@ async function callAIModel(
     }
 
     if (lastTransportError) {
+      if (seenTimeout) {
+        throw new Error(
+          "Ollama local répond trop lentement (timeout). Augmentez le timeout IA (ex: 120000) ou utilisez un modèle plus léger (ex: qwen2.5:7b).",
+        );
+      }
       throw new Error(
         "Ollama local inaccessible. Verifiez que serveur tourne sur 127.0.0.1:11434 (ou localhost:11434), puis retentez.",
       );
