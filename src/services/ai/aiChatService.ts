@@ -186,6 +186,8 @@ function isLocalTimeoutFailure(error: unknown): boolean {
   const message = getErrorMessage(error).toLowerCase();
   return (
     message.includes("timed out") ||
+    message.includes("operation timed out") ||
+    message.includes("request timed out") ||
     message.includes("timeout") ||
     message.includes("deadline has elapsed")
   );
@@ -414,14 +416,24 @@ async function callAIModel(
           },
         );
       } catch (error) {
+        if (isLocalTimeoutFailure(error)) {
+          lastTransportError = error;
+          seenTimeout = true;
+          logger.warn("Timeout IA locale, arret des endpoints de secours", {
+            endpoint: summarizeAIEndpoint(localEndpoint),
+            model,
+            timeoutMs,
+            error: getErrorMessage(error),
+          });
+          break;
+        }
+
         if (isLocalTransportFailure(error)) {
           lastTransportError = error;
-          if (isLocalTimeoutFailure(error)) {
-            seenTimeout = true;
-          }
           logger.warn("Transport IA locale indisponible, tentative endpoint suivant", {
             endpoint: summarizeAIEndpoint(localEndpoint),
             model,
+            error: getErrorMessage(error),
           });
           continue;
         }

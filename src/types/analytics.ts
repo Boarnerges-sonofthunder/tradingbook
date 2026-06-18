@@ -413,8 +413,9 @@ export interface DrawdownResult {
 /**
  * Point de courbe d'equite apres la cloture d'un trade.
  *
- * La courbe part de 0 avant le premier trade et ajoute le `net_pnl`
- * de chaque trade ferme dans l'ordre chronologique de `closed_at`.
+ * La courbe part du capital initial configure pour le compte quand il est
+ * connu, sinon de 0, puis ajoute le `net_pnl` de chaque trade ferme dans
+ * l'ordre chronologique de `closed_at`.
  */
 export interface EquityCurvePoint {
   /** ID du trade source dans SQLite. */
@@ -429,7 +430,7 @@ export interface EquityCurvePoint {
   symbol: string;
   /** PnL net du trade ajoute a ce point. */
   netPnl: number;
-  /** PnL net cumulatif apres ce trade. */
+  /** Niveau d'equite apres ce trade (capital initial + PnL cumule). */
   equity: number;
   /** Plus haut niveau d'equite atteint jusqu'a ce point. */
   peak: number;
@@ -462,7 +463,7 @@ export interface EquityCurveStats {
   totalTrades: number;
   /** Devise majoritaire des trades. */
   currency: string;
-  /** Equity de depart, toujours 0 dans cette analyse. */
+  /** Equity de depart : capital initial du compte si renseigne, sinon 0. */
   startEquity: number;
   /** Equity finale apres le dernier trade ferme. */
   finalEquity: number;

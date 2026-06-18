@@ -21,8 +21,18 @@ const EMPTY_FORM: TradingAccountFormData = {
   accountNumber: "",
   accountType: "other",
   currency: "USD",
+  initialCapital: null,
   isActive: true,
 };
+
+function formatCapital(value: number | null, currency: string | null): string {
+  if (value === null) return "-";
+  const amount = value.toLocaleString("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return currency ? `${amount} ${currency}` : amount;
+}
 
 interface AccountFormModalProps {
   mode: "create" | "edit";
@@ -184,6 +194,29 @@ function AccountFormModal({
                 disabled={saving}
               />
             </label>
+
+            <label className="form-group">
+              <span className="form-label">
+                {tr(language, "Capital initial", "Initial capital")}
+              </span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                value={value.initialCapital ?? ""}
+                onChange={(event) =>
+                  onChange(
+                    "initialCapital",
+                    event.target.value === ""
+                      ? null
+                      : Number(event.target.value),
+                  )
+                }
+                placeholder="10000"
+                disabled={saving}
+              />
+            </label>
           </div>
 
           <label className="form-group strategy-form__toggle-row">
@@ -275,16 +308,17 @@ export default function AccountsPage() {
   function openEdit(account: TradingAccount) {
     setErrors([]);
     setTarget(account);
-    setFormData({
-      name: account.name,
-      broker: account.broker,
-      brokerId: account.brokerId ?? null,
-      platform: account.platform,
-      accountNumber: account.accountNumber,
-      accountType: account.accountType,
-      currency: account.currency,
-      isActive: account.isActive,
-    });
+      setFormData({
+        name: account.name,
+        broker: account.broker,
+        brokerId: account.brokerId ?? null,
+        platform: account.platform,
+        accountNumber: account.accountNumber,
+        accountType: account.accountType,
+        currency: account.currency,
+        initialCapital: account.initialCapital,
+        isActive: account.isActive,
+      });
     setMode("edit");
   }
 
@@ -514,6 +548,14 @@ export default function AccountsPage() {
                 </span>
                 <span className="strategy-card__rules-text">
                   {account.currency ?? "-"}
+                </span>
+              </div>
+              <div className="strategy-card__rules-block">
+                <span className="strategy-card__rules-label">
+                  {tr(settings.language, "Capital initial :", "Initial capital:")}
+                </span>
+                <span className="strategy-card__rules-text">
+                  {formatCapital(account.initialCapital, account.currency)}
                 </span>
               </div>
             </article>

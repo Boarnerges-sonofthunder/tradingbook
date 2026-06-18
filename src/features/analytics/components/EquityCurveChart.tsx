@@ -47,6 +47,7 @@ interface EquityCurveChartProps {
   byTrade: EquityCurvePoint[];
   byDate: EquityDatePoint[];
   currency: string;
+  startEquity: number;
 }
 
 interface EquityTooltipProps {
@@ -153,40 +154,60 @@ const EquityCurveChart = memo(function EquityCurveChart({
   byTrade,
   byDate,
   currency,
+  startEquity,
 }: EquityCurveChartProps) {
   const [mode, setMode] = useState<ChartMode>("date");
 
   const datasets = useMemo<Record<ChartMode, ChartDatum[]>>(
     () => ({
       trade: downsampleSeries(
-        byTrade.map((point) => ({
-          label: `#${point.index}`,
-          title: `${point.symbol} - ${formatDateShort(point.date)}`,
-          date: point.closedAt || point.date,
-          equity: point.equity,
-          netPnl: point.netPnl,
-          tradeIndex: point.index,
-          symbol: point.symbol,
-          drawdown: point.drawdown,
-          drawdownPct: point.drawdownPct,
-        })),
+        [
+          {
+            label: "Départ",
+            title: "Capital initial",
+            date: byTrade[0]?.closedAt || byTrade[0]?.date || "-",
+            equity: startEquity,
+            netPnl: 0,
+          },
+          ...byTrade.map((point) => ({
+            label: `#${point.index}`,
+            title: `${point.symbol} - ${formatDateShort(point.date)}`,
+            date: point.closedAt || point.date,
+            equity: point.equity,
+            netPnl: point.netPnl,
+            tradeIndex: point.index,
+            symbol: point.symbol,
+            drawdown: point.drawdown,
+            drawdownPct: point.drawdownPct,
+          })),
+        ],
         MAX_TRADE_POINTS,
         (point) => point.equity,
       ),
       date: downsampleSeries(
-        byDate.map((point) => ({
-          label: formatDateShort(point.date),
-          title: `Cloture du ${formatDateShort(point.date)}`,
-          date: point.date,
-          equity: point.equity,
-          netPnl: point.netPnl,
-          tradeCount: point.tradeCount,
-        })),
+        [
+          {
+            label: "Départ",
+            title: "Capital initial",
+            date: byDate[0]?.date || "-",
+            equity: startEquity,
+            netPnl: 0,
+            tradeCount: 0,
+          },
+          ...byDate.map((point) => ({
+            label: formatDateShort(point.date),
+            title: `Cloture du ${formatDateShort(point.date)}`,
+            date: point.date,
+            equity: point.equity,
+            netPnl: point.netPnl,
+            tradeCount: point.tradeCount,
+          })),
+        ],
         MAX_DATE_POINTS,
         (point) => point.equity,
       ),
     }),
-    [byDate, byTrade],
+    [byDate, byTrade, startEquity],
   );
 
   const data = mode === "trade" ? datasets.trade : datasets.date;

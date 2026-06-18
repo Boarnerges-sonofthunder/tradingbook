@@ -17,7 +17,11 @@
 // Regle : aucun appel SQLite direct dans React.
 // ============================================================
 
-import { findTradesForAnalytics, type TradeFilters } from "../../repositories";
+import {
+  findTradesForAnalytics,
+  findTradingAccountById,
+  type TradeFilters,
+} from "../../repositories";
 import { createLogger } from "../logging";
 import type { Trade } from "../../types";
 import type {
@@ -85,12 +89,15 @@ function sortByClosedAt(trades: Trade[]): Trade[] {
  *
  * Formule :
  *   equity[i] = equity[i - 1] + net_pnl[i]
- *   peak[i] = max(0, equity[0..i])
+ *   peak[i] = max(startEquity, equity[0..i])
  *   drawdown[i] = equity[i] - peak[i]
  */
-function buildTradeCurve(trades: Trade[]): EquityCurvePoint[] {
-  let equity = 0;
-  let peak = 0;
+function buildTradeCurve(
+  trades: Trade[],
+  startEquity: number,
+): EquityCurvePoint[] {
+  let equity = startEquity;
+  let peak = startEquity;
 
   return trades.map((trade, idx) => {
     const netPnl = netPnlOf(trade);
@@ -148,12 +155,13 @@ function buildDateCurve(points: EquityCurvePoint[]): EquityDatePoint[] {
 function computeStats(
   points: EquityCurvePoint[],
   currency: string,
+  startEquity: number,
 ): EquityCurveStats {
   const last = points[points.length - 1];
 
-  let highestPeak = 0;
+  let highestPeak = startEquity;
   let highestPeakDate: string | null = null;
-  let lowestTrough = 0;
+  let lowestTrough = startEquity;
   let lowestTroughDate: string | null = null;
   let maxDrawdown = 0;
   let maxDrawdownPct = 0;
@@ -178,9 +186,9 @@ function computeStats(
   return {
     totalTrades: points.length,
     currency,
-    startEquity: 0,
+    startEquity,
     finalEquity: last.equity,
-    totalVariation: last.equity,
+    totalVariation: last.equity - startEquity,
     highestPeak,
     highestPeakDate,
     lowestTrough,
@@ -216,12 +224,19 @@ export async function getEquityCurveStats(
 
   const sorted = sortByClosedAt(trades);
   const currency = dominantCurrency(sorted);
-  const byTrade = buildTradeCurve(sorted);
+  const tradingAccountId =
+    typeof filters?.tradingAccountId === "number" ? filters.tradingAccountId : null;
+  const account = tradingAccountId
+    ? await findTradingAccountById(tradingAccountId)
+    : null;
+  const startEquity = account?.initialCapital ?? 0;
+  const byTrade = buildTradeCurve(sorted, startEquity);
   const byDate = buildDateCurve(byTrade);
-  const stats = computeStats(byTrade, currency);
+  const stats = computeStats(byTrade, currency, startEquity);
 
   logger.debug("Courbe d'equite calculee", {
     total: stats.totalTrades,
+    startEquity: stats.startEquity,
     finalEquity: stats.finalEquity,
     maxDrawdown: stats.maxDrawdown,
   });

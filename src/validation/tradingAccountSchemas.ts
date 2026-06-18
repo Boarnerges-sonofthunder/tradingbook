@@ -14,6 +14,7 @@ export const TradingAccountFormDataSchema = z.object({
   accountNumber: z.string().min(1, "Le numero de compte est requis").max(120, "Numero de compte trop long (max 120 car.)"),
   accountType: TradingAccountTypeSchema.optional(),
   currency: z.string().max(10, "Code devise trop long (max 10 car.)").nullable().optional(),
+  initialCapital: z.number().finite("Le capital initial doit etre un nombre valide").min(0, "Le capital initial doit etre positif ou nul").nullable().optional(),
   isActive: z.boolean().optional(),
 });
 

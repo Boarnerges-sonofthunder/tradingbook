@@ -174,6 +174,13 @@ fn get_migrations() -> Vec<Migration> {
             sql: include_str!("../migrations/017_backtesting.sql"),
             kind: MigrationKind::Up,
         },
+        // ---- Migration 018 : capital initial des comptes trading ----
+        Migration {
+            version: 18,
+            description: "trading_account_initial_capital",
+            sql: include_str!("../migrations/018_trading_account_initial_capital.sql"),
+            kind: MigrationKind::Up,
+        },
     ]
 }
 

@@ -53,6 +53,7 @@ import {
   getWinRateStats,
   getRiskRewardStats,
   getDrawdownStats,
+  getEquityCurveStats,
   getProfitFactorStats,
   getSymbolStats,
   getStrategyStats,
@@ -78,6 +79,7 @@ import type {
   WinRateResult,
   RiskRewardResult,
   DrawdownResult,
+  EquityCurveResult,
   ProfitFactorResult,
   SymbolResult,
   StrategyResult,
@@ -96,6 +98,9 @@ const PerformanceChart = lazy(
 );
 const DrawdownChart = lazy(
   () => import("../features/analytics/components/DrawdownChart"),
+);
+const EquityCurveChart = lazy(
+  () => import("../features/analytics/components/EquityCurveChart"),
 );
 
 const ANALYTICS_FILTER_BROKER_KEY = "analytics.selectedBrokerId";
@@ -190,7 +195,11 @@ function LoadingSkeleton() {
 
 // ── État vide ──────────────────────────────────────────────
 
-function EmptyState({ language }: { language: "fr" | "en" }) {
+function EmptyState({
+  language,
+}: {
+  language: "fr" | "en";
+}) {
   return (
     <div className="dashboard-empty">
       <div className="dashboard-empty__icon">
@@ -204,6 +213,36 @@ function EmptyState({ language }: { language: "fr" | "en" }) {
           language,
           "Ajoutez ou importez des trades pour voir l'analyse des performances apparaître ici.",
           "Add or import trades to display performance analytics here.",
+        )}
+      </p>
+    </div>
+  );
+}
+
+function FilteredEmptyState({
+  language,
+  scopeLabel,
+}: {
+  language: "fr" | "en";
+  scopeLabel: string;
+}) {
+  return (
+    <div className="dashboard-empty">
+      <div className="dashboard-empty__icon">
+        <BarChart2 size={48} strokeWidth={1.25} />
+      </div>
+      <h2 className="dashboard-empty__title">
+        {tr(
+          language,
+          `Aucun trade clôturé pour ${scopeLabel}`,
+          `No closed trades for ${scopeLabel}`,
+        )}
+      </h2>
+      <p className="dashboard-empty__text">
+        {tr(
+          language,
+          "Les analytics s'affichent uniquement quand ce filtre contient au moins un trade clôturé importé.",
+          "Analytics only appear when this filter contains at least one imported closed trade.",
         )}
       </p>
     </div>
@@ -243,6 +282,8 @@ export default function AnalyticsPage() {
   );
   const [rrResult, setRrResult] = useState<RiskRewardResult | null>(null);
   const [ddResult, setDdResult] = useState<DrawdownResult | null>(null);
+  const [equityCurveResult, setEquityCurveResult] =
+    useState<EquityCurveResult | null>(null);
   const [pfResult, setPfResult] = useState<ProfitFactorResult | null>(null);
   const [symbolResult, setSymbolResult] = useState<SymbolResult | null>(null);
   const [strategyResult, setStrategyResult] = useState<StrategyResult | null>(
@@ -309,6 +350,7 @@ export default function AnalyticsPage() {
         winRate,
         rr,
         dd,
+        equityCurve,
         pf,
         sym,
         strat,
@@ -321,6 +363,7 @@ export default function AnalyticsPage() {
         getWinRateStats(analyticsFilters),
         getRiskRewardStats(analyticsFilters),
         getDrawdownStats(analyticsFilters),
+        getEquityCurveStats(analyticsFilters),
         getProfitFactorStats(analyticsFilters),
         getSymbolStats(analyticsFilters),
         getStrategyStats({ ...analyticsFilters, status: "closed" }),
@@ -338,6 +381,7 @@ export default function AnalyticsPage() {
         setWinRateResult(winRate);
         setRrResult(rr);
         setDdResult(dd);
+        setEquityCurveResult(equityCurve);
         setPfResult(pf);
         setSymbolResult(sym);
         setStrategyResult(strat);
@@ -501,6 +545,9 @@ export default function AnalyticsPage() {
     ddResult !== null &&
     !ddResult.isEmpty &&
     ddResult.stats !== null &&
+    equityCurveResult !== null &&
+    !equityCurveResult.isEmpty &&
+    equityCurveResult.stats !== null &&
     pfResult !== null &&
     !pfResult.isEmpty &&
     pfResult.stats !== null &&
@@ -662,7 +709,19 @@ export default function AnalyticsPage() {
 
       {/* ── État : vide ──────────────────────────────────── */}
       {!loading && !error && pnlResult !== null && pnlResult.isEmpty && (
-        <EmptyState language={settings.language} />
+        selectedAccount ? (
+          <FilteredEmptyState
+            language={settings.language}
+            scopeLabel={selectedAccount.name}
+          />
+        ) : selectedBroker ? (
+          <FilteredEmptyState
+            language={settings.language}
+            scopeLabel={selectedBroker.name}
+          />
+        ) : (
+          <EmptyState language={settings.language} />
+        )
       )}
 
       {/* ── État : données ───────────────────────────────── */}
@@ -777,6 +836,31 @@ export default function AnalyticsPage() {
               <DrawdownChart
                 curve={ddResult!.curve}
                 currency={displayCurrency}
+              />
+            </Suspense>
+          </section>
+
+          <section className="analytics-section">
+            <h2 className="analytics-section__title">
+              {tr(settings.language, "Courbe d'équité", "Equity curve")}
+            </h2>
+            <Suspense
+              fallback={
+                <AnalyticsChartLoader
+                  title={tr(
+                    settings.language,
+                    "Chargement de la courbe d'équité",
+                    "Loading equity curve",
+                  )}
+                  language={settings.language}
+                />
+              }
+            >
+              <EquityCurveChart
+                byTrade={equityCurveResult!.byTrade}
+                byDate={equityCurveResult!.byDate}
+                currency={displayCurrency}
+                startEquity={equityCurveResult!.stats!.startEquity}
               />
             </Suspense>
           </section>

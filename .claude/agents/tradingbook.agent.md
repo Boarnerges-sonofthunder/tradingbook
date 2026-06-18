@@ -456,3 +456,5 @@ Ne pas effectuer de commit ou de push si :
 - les fichiers modifiés ;
 - le message de commit utilisé ;
 - le statut du push (Succès ou Échec).
+
+Toujours faire Bump version → tag → push → GitHub Actions build → auto-update workflow après chaque tâche importante.

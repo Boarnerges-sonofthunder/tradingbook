@@ -26,6 +26,7 @@ interface TradingAccountRow {
   account_number: string;
   account_type: string;
   currency: string | null;
+  initial_capital: number | null;
   is_active: number;
   created_at: string;
   updated_at: string;
@@ -45,6 +46,7 @@ const TRADING_ACCOUNT_SELECT_COLUMNS = `
   ta.account_number,
   ta.account_type,
   ta.currency,
+  ta.initial_capital,
   ta.is_active,
   ta.created_at,
   ta.updated_at
@@ -105,6 +107,7 @@ function rowToAccount(row: TradingAccountRow): TradingAccount {
     accountNumber: row.account_number,
     accountType: row.account_type as TradingAccountType,
     currency: row.currency,
+    initialCapital: row.initial_capital,
     isActive: row.is_active === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -121,8 +124,8 @@ export async function insertTradingAccount(
   const broker = await resolveBrokerIdentity(data.broker, data.brokerId);
   const db = await getDb();
   const result = await db.execute(
-    `INSERT INTO trading_accounts (name, broker, broker_id, platform, account_number, account_type, currency, is_active)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    `INSERT INTO trading_accounts (name, broker, broker_id, platform, account_number, account_type, currency, initial_capital, is_active)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
     [
       data.name,
       broker.name,
@@ -131,6 +134,7 @@ export async function insertTradingAccount(
       data.accountNumber,
       data.accountType ?? "other",
       data.currency ?? null,
+      data.initialCapital ?? null,
       data.isActive !== false ? 1 : 0,
     ],
   );
@@ -202,6 +206,7 @@ export async function resolveOrCreateTradingAccount(
     accountNumber: input.accountNumber,
     accountType: input.accountType ?? "other",
     currency: input.currency ?? null,
+    initialCapital: null,
     isActive: true,
   });
 }
@@ -303,6 +308,7 @@ export async function updateTradingAccountById(
   if (data.accountNumber !== undefined) { fields.push(`account_number = $${idx++}`); params.push(data.accountNumber); }
   if (data.accountType !== undefined) { fields.push(`account_type = $${idx++}`); params.push(data.accountType); }
   if (data.currency !== undefined) { fields.push(`currency = $${idx++}`); params.push(data.currency ?? null); }
+  if (data.initialCapital !== undefined) { fields.push(`initial_capital = $${idx++}`); params.push(data.initialCapital ?? null); }
   if (data.isActive !== undefined) { fields.push(`is_active = $${idx++}`); params.push(data.isActive ? 1 : 0); }
 
   if (fields.length === 0) return findTradingAccountById(id);

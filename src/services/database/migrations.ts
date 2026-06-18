@@ -105,6 +105,11 @@ export const MIGRATIONS_REGISTRY: MigrationEntry[] = [
     description: "Module backtesting avance (market_data, strategies, runs, trades, equity)",
     filename: "017_backtesting.sql",
   },
+  {
+    version: 18,
+    description: "Capital initial des comptes trading",
+    filename: "018_trading_account_initial_capital.sql",
+  },
 ];
 
 export async function getAppliedMigrations(): Promise<AppliedMigrationRow[]> {

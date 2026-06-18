@@ -17,6 +17,7 @@ export interface TradingAccount {
   accountNumber: string;
   accountType: TradingAccountType;
   currency: string | null;
+  initialCapital: number | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -30,6 +31,7 @@ export interface TradingAccountFormData {
   accountNumber: string;
   accountType?: TradingAccountType;
   currency?: string | null;
+  initialCapital?: number | null;
   isActive?: boolean;
 }
 

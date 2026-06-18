@@ -60,6 +60,7 @@ async function ensureTradingAccountsCompatibility(db: Database): Promise<void> {
         account_number  TEXT    NOT NULL,
         account_type    TEXT    NOT NULL DEFAULT 'other',
         currency        TEXT,
+        initial_capital REAL,
         is_active       INTEGER NOT NULL DEFAULT 1,
         created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
         updated_at      TEXT    NOT NULL DEFAULT (datetime('now'))
@@ -72,6 +73,10 @@ async function ensureTradingAccountsCompatibility(db: Database): Promise<void> {
     await db.execute(
       "CREATE INDEX IF NOT EXISTS idx_trading_accounts_active ON trading_accounts (is_active, name)",
     );
+
+    if (!(await tableHasColumn(db, "trading_accounts", "initial_capital"))) {
+      await db.execute("ALTER TABLE trading_accounts ADD COLUMN initial_capital REAL");
+    }
 
     if (!(await tableHasColumn(db, "trades", "trading_account_id"))) {
       await db.execute("ALTER TABLE trades ADD COLUMN trading_account_id INTEGER");
