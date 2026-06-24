@@ -104,7 +104,7 @@ export default function AIAnalyticsFloatingChat({
     if (!rawPrompt) setInputValue("");
 
     try {
-      await askAIAnalytics({
+      const response = await askAIAnalytics({
         userMessage: prompt,
         conversation,
         analyticsFilters,
@@ -114,7 +114,7 @@ export default function AIAnalyticsFloatingChat({
         },
       });
 
-      setConversation(loadAIConversation());
+      setConversation(response.conversation);
     } catch (error) {
       setErrorText(
         `${tr(settings.language, "Chat IA indisponible", "AI chat unavailable")}: ${getErrorMessage(error)}`,

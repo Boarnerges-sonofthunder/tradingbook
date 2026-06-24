@@ -308,6 +308,8 @@ export default function AnalyticsPage() {
     "all",
   );
   const [filtersReady, setFiltersReady] = useState(false);
+  const [accountsReady, setAccountsReady] = useState(false);
+  const [brokersReady, setBrokersReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [aiChatOpen, setAiChatOpen] = useState(false);
@@ -469,6 +471,8 @@ export default function AnalyticsPage() {
         if (!cancelled) setAccounts(rows);
       } catch {
         if (!cancelled) setAccounts([]);
+      } finally {
+        if (!cancelled) setAccountsReady(true);
       }
     }
 
@@ -487,6 +491,8 @@ export default function AnalyticsPage() {
         if (!cancelled) setBrokers(rows);
       } catch {
         if (!cancelled) setBrokers([]);
+      } finally {
+        if (!cancelled) setBrokersReady(true);
       }
     }
 
@@ -497,22 +503,26 @@ export default function AnalyticsPage() {
   }, []);
 
   useEffect(() => {
+    if (!accountsReady) return;
+
     if (
       selectedAccountId !== "all" &&
       !accounts.some((account) => account.id === selectedAccountId)
     ) {
       setSelectedAccountId("all");
     }
-  }, [selectedAccountId, accounts]);
+  }, [selectedAccountId, accounts, accountsReady]);
 
   useEffect(() => {
+    if (!brokersReady) return;
+
     if (
       selectedBrokerId !== "all" &&
       !brokers.some((broker) => broker.id === selectedBrokerId)
     ) {
       setSelectedBrokerId("all");
     }
-  }, [selectedBrokerId, brokers]);
+  }, [selectedBrokerId, brokers, brokersReady]);
 
   useEffect(() => {
     if (!filtersReady) return;

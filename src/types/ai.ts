@@ -167,6 +167,7 @@ export interface AIChatRequest {
 
 export interface AIChatResponse {
   message: AIChatMessage;
+  conversation: AIConversationState;
   exportPath: string;
   logsPath: string;
 }

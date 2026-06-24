@@ -12,6 +12,14 @@ interface LocalReleaseNote {
 // Notes de version locales: source simple, sans serveur ni dépendance cloud.
 const LOCAL_RELEASE_NOTES: LocalReleaseNote[] = [
   {
+    version: "0.1.23",
+    date: "2026-06-24",
+    notes: [
+      "Conversation IA Analytics se ferme proprement apres reponse ou erreur",
+      "Filtres broker et compte d'Analytics restent sauvegardes au retour sur la page",
+    ],
+  },
+  {
     version: "0.1.22",
     date: "2026-06-24",
     notes: [

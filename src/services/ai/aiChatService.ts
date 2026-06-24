@@ -666,6 +666,7 @@ export async function askAIAnalytics(
 
     return {
       message: assistantMessage,
+      conversation: updatedConversation,
       exportPath: latestPath,
       logsPath,
     };
@@ -699,6 +700,7 @@ export async function askAIAnalytics(
 
     return {
       message: assistantMessage,
+      conversation: updatedConversation,
       exportPath: latestPath,
       logsPath,
     };
