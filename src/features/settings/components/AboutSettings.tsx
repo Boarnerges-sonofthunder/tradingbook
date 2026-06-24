@@ -12,10 +12,18 @@ interface LocalReleaseNote {
 // Notes de version locales: source simple, sans serveur ni dépendance cloud.
 const LOCAL_RELEASE_NOTES: LocalReleaseNote[] = [
   {
+    version: "0.1.22",
+    date: "2026-06-24",
+    notes: [
+      "Default AI model now uses qwen2.5:7b",
+      "AI settings placeholder and timeout guidance updated for local Ollama setup",
+    ],
+  },
+  {
     version: "0.1.16",
     date: "2026-06-03",
     notes: [
-      "Default AI model switched to deepseek-r1:14b",
+      "Default AI model switched to qwen2.5:7b",
       "AI prompt now carries explicit trade date context",
     ],
   },

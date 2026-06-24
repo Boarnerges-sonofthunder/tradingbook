@@ -197,13 +197,13 @@ export default function AISettings() {
                 : prev,
             )
           }
-          placeholder="deepseek-r1:14b"
+          placeholder="qwen2.5:7b"
         />
       </SettingsField>
 
       <SettingsField
         label="Timeout (ms)"
-        hint="Délai max requête IA (2000 à 120000). Recommandé local deepseek: 60000."
+        hint="Délai max requête IA (2000 à 120000). Recommandé local qwen2.5:7b: 60000."
       >
         <input
           type="number"
