@@ -50,6 +50,7 @@ import { detectMT5Trades } from "./mt5TradeDetectionService";
 import { buildMT5ResultError } from "./mt5ErrorService";
 import { finishMT5SyncLog, startMT5SyncLog } from "./mt5SyncLogService";
 import { inferTradingAccountTypeFromText } from "../tradingAccounts/accountTypeInference";
+import { notifyIfTwoConsecutiveLosses } from "../trades/lossStreakAlertService";
 import {
   findTradesByExternalIds,
   insertTrade,
@@ -233,7 +234,10 @@ export async function runMT5Sync(
         if (Object.keys(updateData).length === 0) continue;
 
         try {
-          await updateTradeById(target.id, updateData);
+          const updatedTrade = await updateTradeById(target.id, updateData);
+          if (updatedTrade) {
+            void notifyIfTwoConsecutiveLosses(updatedTrade);
+          }
           fallbackCloseUpdates++;
           logger.debug(
             `Trade ${closure.externalId} fermé via fallback exit-only (id=${target.id})`,
@@ -381,7 +385,8 @@ export async function runMT5Sync(
             brokerId: resolvedBrokerId,
           }
         : candidate.data;
-      await insertTrade(data);
+      const insertedTrade = await insertTrade(data);
+      void notifyIfTwoConsecutiveLosses(insertedTrade);
       inserted++;
     } catch (err) {
       const data = resolvedTradingAccountId
@@ -409,7 +414,10 @@ export async function runMT5Sync(
           });
 
           if (existing) {
-            await updateTradeById(existing.id, data);
+            const updatedTrade = await updateTradeById(existing.id, data);
+            if (updatedTrade) {
+              void notifyIfTwoConsecutiveLosses(updatedTrade);
+            }
             recoveredAsUpdate++;
             logger.warn(
               `Conflit unique resolu via update trade id=${existing.id} (${data.externalId})`,
@@ -445,7 +453,10 @@ export async function runMT5Sync(
             brokerId: resolvedBrokerId,
           }
         : candidate.data;
-      await updateTradeById(candidate.id, data);
+      const updatedTrade = await updateTradeById(candidate.id, data);
+      if (updatedTrade) {
+        void notifyIfTwoConsecutiveLosses(updatedTrade);
+      }
       updated++;
       logger.debug(
         `Trade ${candidate.externalId} mis à jour (raison: ${candidate.reason})`,

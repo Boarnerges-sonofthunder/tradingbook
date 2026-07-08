@@ -51,6 +51,8 @@ export default function GeneralSettings({
   const [defaultLotSize, setDefaultLotSize] = useState(
     String(settings.defaultLotSize),
   );
+  const [twoConsecutiveLossAlertEnabled, setTwoConsecutiveLossAlertEnabled] =
+    useState(settings.twoConsecutiveLossAlertEnabled);
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -62,6 +64,7 @@ export default function GeneralSettings({
         defaultStartupPage,
         dateTimeFormat,
         defaultLotSize: Number(defaultLotSize),
+        twoConsecutiveLossAlertEnabled,
       });
     } finally {
       setSaving(false);
@@ -144,6 +147,21 @@ export default function GeneralSettings({
           value={defaultLotSize}
           onChange={(event) => setDefaultLotSize(event.target.value)}
         />
+      </SettingsField>
+
+      <SettingsField
+        label={t(languageCode, "general_two_losses_alert_label")}
+        hint={t(languageCode, "general_two_losses_alert_hint")}
+      >
+        <select
+          value={String(twoConsecutiveLossAlertEnabled)}
+          onChange={(event) =>
+            setTwoConsecutiveLossAlertEnabled(event.target.value === "true")
+          }
+        >
+          <option value="true">{t(languageCode, "general_enabled")}</option>
+          <option value="false">{t(languageCode, "general_disabled")}</option>
+        </select>
       </SettingsField>
 
       <div className="settings-actions">

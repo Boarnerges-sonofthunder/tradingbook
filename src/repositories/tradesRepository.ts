@@ -326,6 +326,24 @@ export async function findTrades(filters: TradeFilters = {}): Promise<Trade[]> {
 }
 
 /**
+ * Retourne les N trades clotures les plus recents.
+ * Utilise `closed_at` comme ordre principal (plus recent d'abord).
+ */
+export async function findRecentClosedTrades(limit = 2): Promise<Trade[]> {
+  const db = await getDb();
+  const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.trunc(limit)) : 2;
+  const rows = await db.select<TradeRow[]>(
+    `SELECT ${TRADE_SELECT_COLUMNS}
+     FROM trades
+     WHERE status = 'closed' AND closed_at IS NOT NULL
+     ORDER BY closed_at DESC, id DESC
+     LIMIT $1`,
+    [safeLimit],
+  );
+  return rows.map(rowToTrade);
+}
+
+/**
  * Projection légère dédiée à l'analytics.
  *
  * Les services analytics n'utilisent qu'un sous-ensemble des colonnes de

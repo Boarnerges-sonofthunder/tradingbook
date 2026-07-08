@@ -18,3 +18,6 @@ export {
 
 export { checkAndInstallAppUpdate } from "./updaterService";
 export type { AppUpdateCallbacks, AppUpdateResult } from "./updaterService";
+
+export { notifyDesktop } from "./notificationService";
+export type { DesktopNotificationInput } from "./notificationService";

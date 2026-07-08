@@ -11,6 +11,7 @@
 import { createLogger } from "../logging";
 import { invalidateTradeRelatedCaches } from "../cache/domainCache";
 import { logActivity } from "../activity/activityService";
+import { notifyIfTwoConsecutiveLosses } from "./lossStreakAlertService";
 import type { Trade, CreateTradeInput, UpdateTradeInput } from "../../types";
 import { validate, CreateTradeInputSchema, UpdateTradeInputSchema } from "../../validation";
 import * as repo from "../../repositories/tradesRepository";
@@ -36,6 +37,7 @@ export async function createTrade(data: CreateTradeInput): Promise<Trade> {
     action: "trade_created",
     description: `Trade créé : ${trade.symbol} ${trade.side}`,
   }).catch(() => {});
+  void notifyIfTwoConsecutiveLosses(trade);
   return trade;
 }
 
@@ -94,6 +96,7 @@ export async function updateTrade(
         description: `Trade mis à jour : ${updatedFields}`,
       }).catch(() => {});
     }
+    void notifyIfTwoConsecutiveLosses(trade);
   }
   return trade;
 }

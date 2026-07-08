@@ -65,6 +65,7 @@ export const UserSettingsSchema = z.object({
     .max(10_000, "Taille de lot trop elevee"),
   mt5AccountId: z.string().max(100, "Identifiant MT5 trop long").nullable(),
   mt5DataPath: z.string().max(500, "Chemin trop long (max 500 car.)").nullable(),
+  twoConsecutiveLossAlertEnabled: z.boolean(),
 });
 
 /** Mise a jour partielle pour saveSettings(Partial<UserSettings>). */

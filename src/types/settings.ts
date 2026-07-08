@@ -65,6 +65,8 @@ export interface UserSettings {
   mt5AccountId: string | null;
   /** Chemin vers le dossier de donnees MT5 (optionnel). */
   mt5DataPath: string | null;
+  /** Active l'alerte quand 2 pertes consecutives sont detectees. */
+  twoConsecutiveLossAlertEnabled: boolean;
 }
 
 /** Cles valides de la table settings. */
@@ -82,4 +84,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   defaultLotSize: 0.01,
   mt5AccountId: null,
   mt5DataPath: null,
+  twoConsecutiveLossAlertEnabled: true,
 };

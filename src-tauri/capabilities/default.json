@@ -21,6 +21,7 @@
     "fs:scope-appdata-recursive",
     "fs:scope-applocaldata-recursive",
     "log:default",
+    "notification:default",
     {
       "identifier": "http:default",
       "allow": [

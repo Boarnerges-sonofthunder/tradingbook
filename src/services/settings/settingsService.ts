@@ -33,6 +33,7 @@ const SETTING_STORAGE_KEYS: Record<SettingKey, string> = {
   defaultLotSize: "defaultLotSize",
   mt5AccountId: "mt5AccountId",
   mt5DataPath: "mt5DataPath",
+  twoConsecutiveLossAlertEnabled: "twoConsecutiveLossAlertEnabled",
 };
 
 const LEGACY_SETTING_ALIASES: Partial<Record<SettingKey, string[]>> = {
@@ -56,6 +57,14 @@ function parseEnumSetting<T extends string>(
   fallback: T,
 ): T {
   return allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+function parseBooleanSetting(value: string | undefined, fallback: boolean): boolean {
+  if (value == null || value.trim() === "") return fallback;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "true" || normalized === "1") return true;
+  if (normalized === "false" || normalized === "0") return false;
+  return fallback;
 }
 
 function readRawSetting(
@@ -147,6 +156,10 @@ export async function getTypedSettings(): Promise<UserSettings> {
       mt5DataPath: parseNullableSetting(
         readRawSetting(raw, "mt5DataPath"),
         DEFAULT_SETTINGS.mt5DataPath,
+      ),
+      twoConsecutiveLossAlertEnabled: parseBooleanSetting(
+        readRawSetting(raw, "twoConsecutiveLossAlertEnabled"),
+        DEFAULT_SETTINGS.twoConsecutiveLossAlertEnabled,
       ),
     };
   });

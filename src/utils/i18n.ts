@@ -97,6 +97,11 @@ const DICTIONARY = {
     general_default_lot_label: "Lot par défaut",
     general_default_lot_hint:
       "Valeur proposée lors de la création d'un nouveau trade.",
+    general_two_losses_alert_label: "Alerte 2 pertes consécutives",
+    general_two_losses_alert_hint:
+      "Affiche une alerte (toast + desktop) quand deux trades clôturés perdants se suivent.",
+    general_enabled: "Activé",
+    general_disabled: "Désactivé",
     general_save: "Enregistrer",
     general_saving: "Enregistrement…",
   },
@@ -192,6 +197,11 @@ const DICTIONARY = {
       "Preference progressively used across displays.",
     general_default_lot_label: "Default lot",
     general_default_lot_hint: "Suggested value for new trade creation.",
+    general_two_losses_alert_label: "2-loss streak alert",
+    general_two_losses_alert_hint:
+      "Shows an alert (toast + desktop) when two closed losing trades happen in a row.",
+    general_enabled: "Enabled",
+    general_disabled: "Disabled",
     general_save: "Save",
     general_saving: "Saving...",
   },
