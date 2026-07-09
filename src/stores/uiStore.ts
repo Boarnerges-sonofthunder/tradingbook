@@ -34,6 +34,13 @@ export interface Notification {
   createdAt?: number;
 }
 
+export interface AlertModalContent {
+  title: string;
+  message: string;
+  criteria?: string[];
+  confirmLabel?: string;
+}
+
 // ------------------------------------------------------------
 // State interface
 // ------------------------------------------------------------
@@ -61,6 +68,12 @@ interface UIState {
   addNotification: (notification: Omit<Notification, "id">) => void;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
+
+  // ---- Alerte modale globale --------------------------------
+  /** Contenu de modale d'alerte active. null = fermée. */
+  alertModal: AlertModalContent | null;
+  openAlertModal: (content: AlertModalContent) => void;
+  closeAlertModal: () => void;
 }
 
 // ------------------------------------------------------------
@@ -125,4 +138,11 @@ export const useUIStore = create<UIState>()((set) => ({
     })),
 
   clearNotifications: () => set({ notifications: [] }),
+
+  // ---- Alerte modale globale --------------------------------
+  alertModal: null,
+
+  openAlertModal: (content) => set({ alertModal: content }),
+
+  closeAlertModal: () => set({ alertModal: null }),
 }));

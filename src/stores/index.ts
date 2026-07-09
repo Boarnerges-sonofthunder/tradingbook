@@ -10,7 +10,12 @@
 // ============================================================
 
 export { useUIStore } from "./uiStore";
-export type { Theme, NotificationType, Notification } from "./uiStore";
+export type {
+	Theme,
+	NotificationType,
+	Notification,
+	AlertModalContent,
+} from "./uiStore";
 
 export { useFiltersStore } from "./filtersStore";
 export type { TradeDirection, DateRange } from "./filtersStore";

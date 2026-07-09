@@ -5,6 +5,7 @@ interface AlertDialogProps {
   isOpen: boolean;
   title: string;
   message: string;
+  criteria?: string[];
   confirmLabel?: string;
   onConfirm: () => void;
   onClose: () => void;
@@ -16,6 +17,7 @@ export default function AlertDialog({
   isOpen,
   title,
   message,
+  criteria,
   confirmLabel = "Fermer",
   onConfirm,
   onClose,
@@ -34,6 +36,18 @@ export default function AlertDialog({
       }
     >
       <p className="confirm-dialog__body">{message}</p>
+      {criteria && criteria.length > 0 ? (
+        <ul className="alert-dialog__criteria-list">
+          {criteria.map((criterion, index) => (
+            <li
+              key={`${criterion}-${index}`}
+              className="alert-dialog__criteria-item"
+            >
+              {criterion}
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </DialogSurface>
   );
 }

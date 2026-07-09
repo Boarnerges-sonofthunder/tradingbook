@@ -29,6 +29,7 @@ import { Outlet } from "react-router-dom";
 import Sidebar from "../components/layout/Sidebar";
 import Topbar from "../components/layout/Topbar";
 import ToastContainer from "../components/ui/ToastContainer";
+import GlobalAlertModal from "../components/ui/GlobalAlertModal";
 import { MT5AutoRefreshProvider } from "../features/mt5/context/MT5AutoRefreshContext";
 
 export default function AppLayout() {
@@ -62,6 +63,8 @@ export default function AppLayout() {
         <div id="toast-portal" aria-live="polite" aria-atomic="false">
           <ToastContainer />
         </div>
+
+        <GlobalAlertModal />
       </>
     </MT5AutoRefreshProvider>
   );

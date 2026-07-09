@@ -2320,6 +2320,18 @@ select:focus {
   line-height: var(--line-height-normal);
 }
 
+.alert-dialog__criteria-list {
+  margin-top: var(--spacing-sm);
+  padding-left: var(--spacing-lg);
+  color: var(--color-text-primary);
+  display: grid;
+  gap: var(--spacing-xs);
+}
+
+.alert-dialog__criteria-item {
+  line-height: var(--line-height-normal);
+}
+
 /* Pied : boutons Annuler + Confirmer */
 .confirm-dialog__footer {
   display: flex;

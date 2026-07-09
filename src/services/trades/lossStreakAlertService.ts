@@ -8,8 +8,12 @@ import { notifyDesktop } from "../desktop/notificationService";
 const logger = createLogger("loss-streak-alert");
 
 const TWO_LOSSES_ALERT_MESSAGE =
-  "Tu as fais deux pertes de suite. Assure toi que le marché ne rentre pas dans un range avant de prendre une autre position. Si le marché ne decide pas de dépasser les zones clées en haut et en bas qui sont proche alors il rentre probable dans un range. Il serait plus sage d'attendre qu'il sorte de là";
+  "Tu as fait deux pertes de suite. Avant prochaine position, relis checklist discipline.";
 const TWO_LOSSES_ALERT_TITLE = "Alerte discipline TradingBook";
+const TWO_LOSSES_ALERT_CRITERIA = [
+  "Regarder si marche n'est pas dans range.",
+  "Verifier si tu prends position dans bon sens du marche.",
+];
 
 function isLoss(trade: Trade | undefined): boolean {
   if (!trade) return false;
@@ -37,10 +41,11 @@ export async function notifyIfTwoConsecutiveLosses(
     if (latest.id !== triggerTrade.id) return;
     if (!isLoss(latest) || !isLoss(previous)) return;
 
-    useUIStore.getState().addNotification({
-      type: "warning",
+    useUIStore.getState().openAlertModal({
+      title: TWO_LOSSES_ALERT_TITLE,
       message: TWO_LOSSES_ALERT_MESSAGE,
-      duration: 12_000,
+      criteria: TWO_LOSSES_ALERT_CRITERIA,
+      confirmLabel: "J'ai compris",
     });
     await notifyDesktop({
       title: TWO_LOSSES_ALERT_TITLE,
