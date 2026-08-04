@@ -906,6 +906,7 @@ export default function MT5SyncPage() {
           <MT5OpenPositionsPreview
             status={positionsStatus}
             result={positionsResult}
+            isRealtime={positionsTickActive}
           />
         </div>
       </section>

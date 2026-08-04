@@ -593,7 +593,7 @@ export default function DashboardPage() {
         </div>
 
         {positionsSources.length === 0 ? (
-          <MT5OpenPositionsPreview status="idle" result={null} />
+          <MT5OpenPositionsPreview status="idle" result={null} isRealtime />
         ) : (
           positionsSources.map((source) => (
             <div key={source.key} className="dashboard-mt5-source">
@@ -628,6 +628,7 @@ export default function DashboardPage() {
               <MT5OpenPositionsPreview
                 status={source.status}
                 result={source.result}
+                isRealtime={source.connected}
               />
             </div>
           ))

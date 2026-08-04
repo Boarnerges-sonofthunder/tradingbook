@@ -6420,6 +6420,32 @@ select:focus {
   color: var(--color-text-secondary);
 }
 
+.mt5-positions-preview__total-pnl-wrap {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--spacing-1);
+}
+
+.mt5-positions-preview__total-pnl-label {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.mt5-positions-preview__total-pnl {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.mt5-positions-preview__header-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  flex-wrap: wrap;
+}
+
 /* Badge "Prévisualisation — aucune position importée" */
 .mt5-positions-preview__badge {
   display: inline-flex;
@@ -6433,6 +6459,12 @@ select:focus {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-sm);
   white-space: nowrap;
+}
+
+.mt5-positions-preview__badge--live {
+  color: rgb(74, 222, 128);
+  border-color: color-mix(in srgb, rgb(74, 222, 128) 40%, transparent 60%);
+  background: color-mix(in srgb, rgb(74, 222, 128) 12%, transparent 88%);
 }
 
 /* Tableau */

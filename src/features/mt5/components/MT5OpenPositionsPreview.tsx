@@ -186,11 +186,15 @@ interface MT5OpenPositionsPreviewProps {
 
   /** Résultat de la dernière requête (null si idle). */
   result: MT5PositionsResult | null;
+
+  /** True quand la source est poussée en temps réel sur tick prix. */
+  isRealtime?: boolean;
 }
 
 const MT5OpenPositionsPreview = memo(function MT5OpenPositionsPreview({
   status,
   result,
+  isRealtime = false,
 }: MT5OpenPositionsPreviewProps) {
   const settings = useUserSettings();
 
@@ -264,6 +268,10 @@ const MT5OpenPositionsPreview = memo(function MT5OpenPositionsPreview({
 
   // ── Success ─────────────────────────────────────────────
   const { positions, totalPositions, account, server, currency } = result;
+  const totalUnrealizedPnl = positions.reduce(
+    (sum, position) => sum + position.profit + position.swap,
+    0,
+  );
 
   return (
     <div className="mt5-positions-preview mt5-positions-preview--success">
@@ -281,16 +289,40 @@ const MT5OpenPositionsPreview = memo(function MT5OpenPositionsPreview({
               {currency ? ` (${currency})` : ""}
             </span>
           )}
+          <span className="mt5-positions-preview__total-pnl-wrap">
+            <span className="mt5-positions-preview__total-pnl-label">
+              Somme P&amp;L ouvert
+            </span>
+            <strong
+              className={`mt5-positions-preview__total-pnl ${pnlClass(totalUnrealizedPnl)}`}
+            >
+              {fmtSigned(totalUnrealizedPnl)}
+              {currency ? ` ${currency}` : ""}
+            </strong>
+          </span>
         </div>
 
         {/* Badge "prévisualisation" */}
-        <span
-          className="mt5-positions-preview__badge"
-          aria-label="Prévisualisation — lecture seule"
-        >
-          <Eye size={12} aria-hidden />
-          Prévisualisation — aucune position importée
-        </span>
+        <div className="mt5-positions-preview__header-badges">
+          <span
+            className={`mt5-positions-preview__badge ${isRealtime ? "mt5-positions-preview__badge--live" : ""}`}
+            aria-label={
+              isRealtime
+                ? "Synchronisation tick active"
+                : "Synchronisation tick inactive"
+            }
+          >
+            <RefreshCw size={12} aria-hidden />
+            {isRealtime ? "Synchro tick active" : "Synchro tick inactive"}
+          </span>
+          <span
+            className="mt5-positions-preview__badge"
+            aria-label="Prévisualisation — lecture seule"
+          >
+            <Eye size={12} aria-hidden />
+            Prévisualisation — aucune position importée
+          </span>
+        </div>
       </div>
 
       {/* Tableau */}
@@ -329,7 +361,11 @@ const MT5OpenPositionsPreview = memo(function MT5OpenPositionsPreview({
           </thead>
           <tbody>
             {positions.map((pos) => (
-              <PositionRow key={pos.ticket} position={pos} settings={settings} />
+              <PositionRow
+                key={pos.ticket}
+                position={pos}
+                settings={settings}
+              />
             ))}
           </tbody>
         </table>
@@ -338,10 +374,9 @@ const MT5OpenPositionsPreview = memo(function MT5OpenPositionsPreview({
       {/* Note informative */}
       <p className="mt5-positions-preview__note">
         <RefreshCw size={11} aria-hidden />
-        Les données affichées reflètent l'état du terminal MT5 au moment de la
-        dernière actualisation. Cliquez à nouveau sur{" "}
-        <strong>Actualiser les positions</strong> pour obtenir les prix en temps
-        réel.
+        {isRealtime
+          ? "Les prix et la somme du P&L ouvert se mettent a jour automatiquement a chaque tick detecte."
+          : "Les donnees affichees refletent etat du terminal MT5 au moment de derniere actualisation. Cliquez a nouveau sur Actualiser les positions pour obtenir prix a jour."}
       </p>
     </div>
   );
