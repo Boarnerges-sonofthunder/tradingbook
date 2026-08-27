@@ -66,6 +66,26 @@ function derivePositionsStatus(
   return "success";
 }
 
+function accountKey(result: MT5PositionsResult | null): string | null {
+  const accountId = result?.accountId?.trim();
+  return accountId ? accountId : null;
+}
+
+function deduplicatePositionSources(
+  sources: MT5PositionsSourceEntry[],
+): MT5PositionsSourceEntry[] {
+  const accountKeys = new Set<string>();
+
+  return sources.filter((source) => {
+    const key = accountKey(source.result);
+    if (key === null) return true;
+    if (accountKeys.has(key)) return false;
+
+    accountKeys.add(key);
+    return true;
+  });
+}
+
 const DASHBOARD_MT5_TICK_POLL_MS = 500;
 
 interface MT5PositionsSourceEntry {
@@ -244,9 +264,10 @@ export default function DashboardPage() {
           }),
         );
 
+        const uniqueResults = deduplicatePositionSources(results);
         const accountIds = [
           ...new Set(
-            results
+            uniqueResults
               .filter((entry) => entry.connected)
               .map((entry) => entry.result?.accountId?.trim() ?? "")
               .filter((value) => value !== ""),
@@ -255,7 +276,7 @@ export default function DashboardPage() {
 
         connectedAccountIdsRef.current = accountIds;
         startTransition(() => {
-          setPositionsSources(results);
+          setPositionsSources(uniqueResults);
         });
         hasLoadedPositionsRef.current = true;
         return accountIds;
@@ -354,7 +375,12 @@ export default function DashboardPage() {
     ) {
       setPositionsSources((current) => {
         const next = [...current];
-        const entryIndex = next.findIndex((entry) => entry.key === key);
+        const eventAccountKey = accountKey(event);
+        const entryIndex = next.findIndex(
+          (entry) =>
+            entry.key === key ||
+            (eventAccountKey !== null && accountKey(entry.result) === eventAccountKey),
+        );
         const label = buildSourceLabel(
           settings.language,
           terminalPath,
@@ -373,11 +399,11 @@ export default function DashboardPage() {
 
         if (entryIndex >= 0) {
           next[entryIndex] = nextEntry;
-          return next;
+          return deduplicatePositionSources(next);
         }
 
         next.push(nextEntry);
-        return next;
+        return deduplicatePositionSources(next);
       });
     }
 
